@@ -40,8 +40,9 @@ reg [3:0] ldi_reg;
 reg urx_reg_sel;
 reg [3:0] urx_reg;
 
-wire zn_zf = 0;
-wire zn_nf = 0;
+wire zn_zf;
+wire zn_nf;
+
 wire is_do_op = !is_ldi && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 reg was_do_op;
 
@@ -59,28 +60,61 @@ wire [3:0] regb =
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
-wire regs_we = 
-    was_do_op && (is_ldi || was_op_ld) ? 1 :
-    0;
+wire cs_call = 0;
 
+//
+// ALU
+//
+wire is_alu_op = !is_ldi && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
+
+wire [2:0] alu_op = 
+    instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
+    instr_op[3:1]; // same as upper 3 bits of op
+
+wire [REGISTERS_WIDTH-1:0] alu_operand_a =
+    instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGISTERS_WIDTH-4){rega[3]}},rega} : {{(REGISTERS_WIDTH-4){1'b0}},rega} + 1) : 
+    rega_dat; // otherwise regs[a]
+
+wire alu_zf;
+
+wire alu_nf;
+
+wire [REGISTERS_WIDTH-1:0] alu_result;
+
+//
+// Registers
+//
+wire regs_we = 
+    (was_do_op && (is_ldi || was_op_ld)) || 
+    (is_do_op && is_alu_op);
+    
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
     was_do_op && was_op_ld ? ram_doa :
+    is_do_op && is_alu_op ? alu_result :
     0;
 
 wire [REGISTERS_WIDTH-1:0] rega_dat;
+
 wire [REGISTERS_WIDTH-1:0] regb_dat;
 
 wire is_op_st = is_do_op && !is_jmp && instr_op == OP_ST;
-wire is_op_ld = is_do_op && !is_jmp && instr_op == OP_LD;
-reg was_op_ld;
-reg [3:0] ld_reg;
 
-wire stall = was_op_ld && is_op_st;
+wire is_op_ld = is_do_op && !is_jmp && instr_op == OP_LD;
+
+reg was_op_ld;
+
+reg [3:0] ld_reg;
 
 assign ram_addra = rega_dat;
 assign ram_dia = regb_dat;
-assign ram_wea = is_op_st;
+assign ram_wea = is_op_st && !was_op_ld;
+
+wire cs_zf = 0;
+wire cs_nf = 0;
+wire zn_we = is_do_op && is_alu_op;
+wire zn_sel = 0;
+wire zn_clr = 0;
 
 reg [3:0] stp;
 
@@ -107,18 +141,18 @@ always @(posedge clk) begin
         was_op_ld <= 0;
         ld_reg <= 0;
     end else begin
-    
+
+        pc <= pc + 1;
+                
         case(stp)
         
-        2'h1: begin 
+        4'd1: begin 
             $display("%0t: clk+: Core: %0d:%0h boot", $time, pc, instr);
             stp <= 2;
         end
         
-        2'h2: begin
+        4'd2: begin
             was_do_op <= is_do_op;
-            was_op_ld <= is_op_ld;
-            ld_reg <= instr[15:12];
             if (!is_do_op) begin
             end else begin
                 case(instr_op)
@@ -127,19 +161,27 @@ always @(posedge clk) begin
                     ldi_reg <= regb;
                     stp <= 3;
                 end
+                OP_LD: begin
+                    was_op_ld <= 1;
+                    ld_reg <= instr[15:12];
+                    pc <= pc;
+                    stp <= 4;
+                end
                 endcase
             end
         end
 
-        2'h3: begin
+        4'd3: begin
             is_ldi <= 0;
+            stp <= 2;
+        end
+
+        4'd4: begin
+            was_op_ld <= 0;
             stp <= 2;
         end
         
         endcase
-        if (!stall) begin
-            pc <= pc + 1;
-        end else $display("*** stall");
     end
 end
 
@@ -154,6 +196,31 @@ Registers #(
     .we(regs_we),
     .rd1(rega_dat),
     .rd2(regb_dat)
+);
+
+ALU #(
+    .WIDTH(REGISTERS_WIDTH)
+) alu (
+    .op(alu_op),
+    .a(alu_operand_a),
+    .b(regb_dat),
+    .result(alu_result),
+    .zf(alu_zf),
+    .nf(alu_nf)
+);
+
+Zn zn (
+    .rst(rst),
+    .clk(clk),
+    .cs_zf(cs_zf),
+    .cs_nf(cs_nf),
+    .alu_zf(alu_zf),
+    .alu_nf(alu_nf),
+    .we(zn_we), // depending on 'sel' copy 'Calls' or 'ALU' zn flags
+    .sel(zn_sel), // selector when 'we', enabled cs_*, disabled alu_* 
+    .clr(zn_clr), // selector when 'we', clears the flags, has precedence over 'sel'
+    .zf(zn_zf),
+    .nf(zn_nf)
 );
 
 endmodule
