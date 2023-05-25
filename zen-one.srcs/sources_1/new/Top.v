@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 `default_nettype none
-`define DBG
+//`define DBG
 
 module Top #(
     parameter ROM_FILE = "ROM.mem"
@@ -30,7 +30,7 @@ assign led = ram_doa[3:0];
 
 always @(posedge clk) begin
     `ifdef DBG
-        $display("%0t: clk+: Top: %0d", $time, ram_addrb);
+        $display("%0t: clk+: Top: %0d:%0h", $time, ram_addrb, ram_dob);
     `endif
 end
 
@@ -41,7 +41,8 @@ Core core (
     .instr(ram_dob),
     .ram_addra(ram_addra),
     .ram_dia(ram_dia),
-    .ram_wea(ram_wea)
+    .ram_wea(ram_wea),
+    .ram_doa(ram_doa)
 );
 
 RAM #(

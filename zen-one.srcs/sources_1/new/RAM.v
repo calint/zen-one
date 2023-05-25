@@ -33,6 +33,13 @@ always @(posedge clk) begin
     dob <= ram[addrb];
 end
 
+always @(posedge clk) begin
+    `ifdef DBG
+        $display("%0t: clk+: RAM: doa,dob=%0h,%0h process", $time, doa, dob);
+        $strobe("%0t: strobe clk+: RAM: doa,dob=%0h,%0h process", $time, doa, dob);
+    `endif
+end
+
 endmodule 
 
 `undef DBG
