@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="435.800 ns"></ZoomStartTime>
-      <ZoomEndTime time="488.901 ns"></ZoomEndTime>
-      <Cursor1Time time="465.000 ns"></Cursor1Time>
+      <ZoomStartTime time="461.705 ns"></ZoomStartTime>
+      <ZoomEndTime time="591.659 ns"></ZoomEndTime>
+      <Cursor1Time time="570.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="117"></NameColumnWidth>
+      <NameColumnWidth column_width="101"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="11" />
+   <WVObjectSize size="12" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -64,7 +64,6 @@
    <wvobject type="group" fp_name="group2371">
       <obj_property name="label">op_ldi</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/TB_Top/top/core/is_ldi">
          <obj_property name="ElementShortName">is_ldi</obj_property>
          <obj_property name="ObjectShortName">is_ldi</obj_property>
@@ -113,7 +112,6 @@
    <wvobject type="group" fp_name="group1000">
       <obj_property name="label">op_st</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/TB_Top/top/core/is_op_st">
          <obj_property name="ElementShortName">is_op_st</obj_property>
          <obj_property name="ObjectShortName">is_op_st</obj_property>
@@ -205,6 +203,23 @@
       <wvobject type="logic" fp_name="/TB_Top/top/core/zn_clr">
          <obj_property name="ElementShortName">zn_clr</obj_property>
          <obj_property name="ObjectShortName">zn_clr</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="group" fp_name="group3110">
+      <obj_property name="label">call</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/TB_Top/top/core/cs_call">
+         <obj_property name="ElementShortName">cs_call</obj_property>
+         <obj_property name="ObjectShortName">cs_call</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/TB_Top/top/core/is_calling">
+         <obj_property name="ElementShortName">is_calling</obj_property>
+         <obj_property name="ObjectShortName">is_calling</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/TB_Top/top/core/cs_ret">
+         <obj_property name="ElementShortName">cs_ret</obj_property>
+         <obj_property name="ObjectShortName">cs_ret</obj_property>
       </wvobject>
    </wvobject>
 </wave_config>

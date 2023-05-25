@@ -123,8 +123,44 @@ initial begin
 
     #clk_tk; // [29] 003F: jmp lbl1
     if (top.core.pc == 32)  $display("case 36 passed"); else $display("case 36 FAILED");
-    #clk_tk;
+    #clk_tk; // wait for ram
+
+    // zn==01
+    #clk_tk; // [32] 003B: call x0030
+    if (top.core.pc == 48)  $display("case 37 passed"); else $display("case 37 FAILED");
+    if (!top.core.zn_zf && !top.core.zn_nf) $display("case 38 passed"); else $display("case 38 FAILED");
+    #clk_tk; // wait for ram
+
+    #clk_tk; // [48] 8017: addi 1 r8 ret
+    if (top.core.pc == 33)  $display("case 38 passed"); else $display("case 38 FAILED");
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 39 passed"); else $display("case 39 FAILED");
    
+    // zn==01
+    #clk_tk; // [33] 0048: ifp call x0040
+    if (top.core.pc == 34)  $display("case 40 passed"); else $display("case 40 FAILED");
+
+    #clk_tk; // [34] 0049: ifz call x0040
+    if (top.core.pc == 35)  $display("case 41 passed"); else $display("case 41 FAILED");
+   
+    #clk_tk; // [35] 9030: ifp ldi 0x0040 r9
+    #clk_tk; // [36] 0040
+    if (top.core.regs.mem[9] != 16'h0040) $display("case 42 passed"); else $display("case 42 FAILED");
+
+    #clk_tk; // [37] 9031: ifz ldi 0x0040 r9
+    #clk_tk; // [38] 0040
+    if (top.core.regs.mem[9] != 16'h0040) $display("case 43 passed"); else $display("case 43 FAILED");
+    
+    #clk_tk; // [39] 00AC: ifp jmp x007
+    if (top.core.pc == 40)  $display("case 44 passed"); else $display("case 44 FAILED");
+
+    #clk_tk; // [40] 009D: ifz jmp x007
+    if (top.core.pc == 41)  $display("case 45 passed"); else $display("case 45 FAILED");
+    
+    #clk_tk; // [41] 005A: ifn call x0050
+    #clk_tk; // wait for ram
+    if (top.core.pc == 80)  $display("case 46 passed"); else $display("case 46 FAILED");
+    
+    
     $finish;
 end
 

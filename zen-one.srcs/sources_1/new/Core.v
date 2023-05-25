@@ -5,16 +5,18 @@
 module Core(
     input wire rst,
     input wire clk,
-    output reg [15:0] pc,
+    output reg [ROM_ADDR_WIDTH-1:0] pc,
     input wire [15:0] instr,
-    output wire [15:0] ram_addra,
+    output wire [ROM_ADDR_WIDTH-1:0] ram_addra,
     input wire [15:0] ram_doa,
     output wire [15:0] ram_dia,
     output wire ram_wea
 );
 
-localparam REGISTERS_ADDR_WIDTH = 4; // 2**4 16 registers (not changable since register address is encoded in instruction using 4 bits) 
+localparam REGISTERS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
 localparam REGISTERS_WIDTH = 16; // 16 bit
+localparam CALLS_ADDR_WIDTH = 6; // (2**6) 64
+localparam ROM_ADDR_WIDTH = 16; // (2**16) 64K
 
 localparam OP_ADDI = 4'b0001; // add immediate signed 4 bits value to 'regb' where imm4>=0?++imm4:-imm4
 localparam OP_LDI  = 4'b0011; // load immediate 16 bits from next instruction
@@ -60,7 +62,16 @@ wire [3:0] regb =
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
-wire cs_call = 0;
+//
+// Calls
+//
+reg is_calling;
+wire cs_call = is_do_op && !is_calling && instr_c && !instr_r;
+wire cs_ret = is_do_op && !instr_c && instr_r;
+wire cs_en = cs_call || cs_ret;
+wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
+wire cs_zf; // Calls -> Zn
+wire cs_nf; // Calls -> Zn
 
 //
 // ALU
@@ -110,11 +121,12 @@ assign ram_addra = rega_dat;
 assign ram_dia = regb_dat;
 assign ram_wea = is_op_st && !was_op_ld;
 
-wire cs_zf = 0;
-wire cs_nf = 0;
-wire zn_we = is_do_op && is_alu_op;
-wire zn_sel = 0;
-wire zn_clr = 0;
+//
+// Zn
+//
+wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
+wire zn_sel = cs_ret;
+wire zn_clr = cs_call;
 
 reg [3:0] stp;
 
@@ -140,9 +152,15 @@ always @(posedge clk) begin
         was_do_op <= 0;
         was_op_ld <= 0;
         ld_reg <= 0;
+        is_calling <= 0;
     end else begin
 
-        pc <= pc + 1;
+        if (cs_ret) begin
+            pc <= cs_pc_out;
+            stp <= 5;
+        end else begin
+            pc <= pc + 1;
+        end
                 
         case(stp)
         
@@ -158,6 +176,10 @@ always @(posedge clk) begin
                 if (is_jmp) begin
                     pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
                     stp <= 5;
+                end else if (cs_call) begin
+                    pc <= imm12 << 4;
+                    is_calling <= 1;                
+                    stp <= 5;
                 end else begin
                     case(instr_op)
                     OP_LDI: begin
@@ -168,7 +190,9 @@ always @(posedge clk) begin
                     OP_LD: begin
                         was_op_ld <= 1;
                         ld_reg <= instr[15:12];
-                        pc <= pc;
+                        if (!cs_ret) begin
+                            pc <= pc; // overwrite pc to stall
+                        end
                         stp <= 4;
                     end
                     endcase
@@ -176,17 +200,18 @@ always @(posedge clk) begin
             end // !is_do_op
         end // case
 
-        4'd3: begin
+        4'd3: begin // OP_LDI second part
             is_ldi <= 0;
             stp <= 2;
         end
 
-        4'd4: begin
+        4'd4: begin // OP_LD second part
             was_op_ld <= 0;
             stp <= 2;
         end
 
-        4'd5: begin // jmp nop
+        4'd5: begin // call second part
+            is_calling <= 0;
             stp <= 2;
         end
         
@@ -230,6 +255,23 @@ Zn zn (
     .clr(zn_clr), // selector when 'we', clears the flags, has precedence over 'sel'
     .zf(zn_zf),
     .nf(zn_nf)
+);
+
+Calls #(
+    .ADDR_WIDTH(CALLS_ADDR_WIDTH),
+    .ROM_ADDR_WIDTH(ROM_ADDR_WIDTH)
+) cs (
+    .rst(rst),
+    .clk(clk),
+    .pc_in(pc), // current program counter
+    .zf_in(zn_zf), // current zero flag
+    .nf_in(zn_nf), // current negative flag
+    .call(cs_call), // enabled when it is a 'call'
+    .ret(cs_ret), // enabled when instruction is also 'return'
+    .en(cs_en), // enables 'push' or 'pop'
+    .pc_out(cs_pc_out), // top of stack program counter
+    .zf_out(cs_zf), // top of stack zero flag
+    .nf_out(cs_nf) // top of stack negative flag
 );
 
 endmodule
