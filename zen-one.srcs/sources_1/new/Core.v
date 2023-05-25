@@ -155,21 +155,26 @@ always @(posedge clk) begin
             was_do_op <= is_do_op;
             if (!is_do_op) begin
             end else begin
-                case(instr_op)
-                OP_LDI: begin
-                    is_ldi <= 1;
-                    ldi_reg <= regb;
-                    stp <= 3;
-                end
-                OP_LD: begin
-                    was_op_ld <= 1;
-                    ld_reg <= instr[15:12];
-                    pc <= pc;
-                    stp <= 4;
-                end
-                endcase
-            end
-        end
+                if (is_jmp) begin
+                    pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
+                    stp <= 5;
+                end else begin
+                    case(instr_op)
+                    OP_LDI: begin
+                        is_ldi <= 1;
+                        ldi_reg <= regb;
+                        stp <= 3;
+                    end
+                    OP_LD: begin
+                        was_op_ld <= 1;
+                        ld_reg <= instr[15:12];
+                        pc <= pc;
+                        stp <= 4;
+                    end
+                    endcase
+                end // is_jmp
+            end // !is_do_op
+        end // case
 
         4'd3: begin
             is_ldi <= 0;
@@ -178,6 +183,10 @@ always @(posedge clk) begin
 
         4'd4: begin
             was_op_ld <= 0;
+            stp <= 2;
+        end
+
+        4'd5: begin // jmp nop
             stp <= 2;
         end
         

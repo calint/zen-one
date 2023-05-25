@@ -118,6 +118,13 @@ initial begin
     #clk_tk; // [27] 0x0001
     if (top.core.regs.mem[7] == 1) $display("case 34 passed"); else $display("case 34 FAILED");
     
+    #clk_tk; // [28] 004C: ifp jmp lbl1      # zn!=00 => does not execute
+    if (top.core.pc == 30)  $display("case 35 passed"); else $display("case 35 FAILED");
+
+    #clk_tk; // [29] 003F: jmp lbl1
+    if (top.core.pc == 32)  $display("case 36 passed"); else $display("case 36 FAILED");
+    #clk_tk;
+   
     $finish;
 end
 
