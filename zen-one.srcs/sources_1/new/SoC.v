@@ -3,7 +3,7 @@
 `define DBG
 
 module SoC #(
-    parameter ROM_FILE = "ROM.mem"
+    parameter ROM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_1/new/TB_Top.mem"
 )(
     input wire reset,
     input wire clk_in,
@@ -19,14 +19,16 @@ module SoC #(
 wire clk;
 wire clk_locked;
 
-Clocking clocking(
+Clocking clocking (
     .reset(reset),
     .clk_in1(clk_in),
     .clk_out1(clk),
     .locked(clk_locked)
 );
 
-Top top(
+Top #(
+    .ROM_FILE(ROM_FILE)
+) top (
     .reset(!clk_locked),
     .clk_in(clk),
     .uart_tx(uart_tx),

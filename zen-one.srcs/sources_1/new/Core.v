@@ -29,7 +29,7 @@ always @(posedge clk) begin
         end
         2'h1: begin
             $display("%0t: clk+: Core: %0d:%0h process", $time, pc, instr);
-            ram_addra <= pc + 16'h0x0100;
+            ram_addra <= pc + 16'h0100;
             ram_dia <= instr;
             ram_wea <= 1;
         end
