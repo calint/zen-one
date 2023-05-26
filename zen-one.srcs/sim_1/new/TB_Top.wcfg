@@ -11,13 +11,13 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="725.600 ns"></ZoomStartTime>
-      <ZoomEndTime time="839.001 ns"></ZoomEndTime>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="711.422 ns"></ZoomEndTime>
       <Cursor1Time time="820.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="81"></NameColumnWidth>
-      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+      <NameColumnWidth column_width="157"></NameColumnWidth>
+      <ValueColumnWidth column_width="136"></ValueColumnWidth>
    </column_width_setting>
    <WVObjectSize size="15" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
@@ -45,9 +45,9 @@
       <obj_property name="ElementShortName">is_do_op</obj_property>
       <obj_property name="ObjectShortName">is_do_op</obj_property>
    </wvobject>
-   <wvobject type="logic" fp_name="/TB_Top/top/core/is_stall">
-      <obj_property name="ElementShortName">is_stall</obj_property>
-      <obj_property name="ObjectShortName">is_stall</obj_property>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/is_bubble">
+      <obj_property name="ElementShortName">is_bubble</obj_property>
+      <obj_property name="ObjectShortName">is_bubble</obj_property>
    </wvobject>
    <wvobject type="group" fp_name="group530">
       <obj_property name="label">RAM</obj_property>
@@ -72,7 +72,6 @@
    <wvobject type="group" fp_name="group2371">
       <obj_property name="label">op_ldi</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/TB_Top/top/core/is_ldi">
          <obj_property name="ElementShortName">is_ldi</obj_property>
          <obj_property name="ObjectShortName">is_ldi</obj_property>
@@ -89,10 +88,6 @@
    <wvobject type="group" fp_name="group666">
       <obj_property name="label">op_ld</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject type="logic" fp_name="/TB_Top/top/core/was_op_ld">
-         <obj_property name="ElementShortName">was_op_ld</obj_property>
-         <obj_property name="ObjectShortName">was_op_ld</obj_property>
-      </wvobject>
       <wvobject type="array" fp_name="/TB_Top/top/core/rega_dat">
          <obj_property name="ElementShortName">rega_dat[15:0]</obj_property>
          <obj_property name="ObjectShortName">rega_dat[15:0]</obj_property>
