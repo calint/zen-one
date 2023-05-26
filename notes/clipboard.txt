@@ -28,3 +28,7 @@ overwrites HEAD with current workspace
 vivado install cable drivers:
     ./Vivado/2022.2/data/xicom/cable_drivers/lin64/install_script/install_drivers/install_drivers
 -------------------------------------------------------------
+
+
+41 -> x0070 112
+

@@ -43,17 +43,17 @@ always @(posedge clk) begin
         if (en) begin
             if (call) begin
                 idx = idx + 1;
-                $display("*** call from: %0d, idx=%0d", pc_in, idx);
+                //$display("*** call from: %0d, idx=%0d", pc_in, idx);
                 mem[idx] <= {zf_in, nf_in, pc_in};
                 zf_out <= zf_in;
                 nf_out <= nf_in;
                 pc_out <= pc_in;
             end else if (ret) begin
-                $display("*** ret to: %0d, idx=%0d", mem[idx][ROM_ADDR_WIDTH-1:0], idx);
+                //$display("*** ret to: %0d, idx=%0d", mem[idx][ROM_ADDR_WIDTH-1:0], idx);
+                idx = idx - 1;
                 zf_out <= mem[idx][ROM_ADDR_WIDTH+1];
                 nf_out <= mem[idx][ROM_ADDR_WIDTH];
                 pc_out <= mem[idx][ROM_ADDR_WIDTH-1:0];
-                idx <= idx - 1;
             end
         end
     end

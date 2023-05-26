@@ -68,7 +68,7 @@ wire is_do_op = !is_ldi && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf =
 //
 reg is_calling;
 wire cs_call = is_do_op && !is_calling && instr_c && !instr_r;
-wire cs_ret = is_do_op && !instr_c && instr_r;
+wire cs_ret = is_do_op && !is_calling && !instr_c && instr_r;
 wire cs_en = cs_call || cs_ret;
 wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
 wire cs_zf; // Calls -> Zn
@@ -156,7 +156,8 @@ always @(posedge clk) begin
         is_calling <= 0;
     end else begin
     
-        if (cs_ret && !is_calling) begin
+        if (cs_ret) begin
+            //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
             stp <= 5;
         end else begin
