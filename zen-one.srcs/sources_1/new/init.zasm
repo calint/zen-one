@@ -1,0 +1,14 @@
+ldi 0x4548 r1  # 'EH'
+wl r1
+wh r1
+ldi 0x4c4c r1  # 'LL'
+wl r1
+wh r1
+ldi 0x204f r1  # ' O'
+wl r1
+wh r1
+
+echo:
+    rl r1
+    wl r1
+    jmp echo

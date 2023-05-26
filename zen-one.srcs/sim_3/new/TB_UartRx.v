@@ -64,8 +64,47 @@ initial begin
     uart_rx = 1; // idle
     
     #clk_tk // wait for register to be written
-    #clk_tk // wait for register to be written
+    #clk_tk 
     if (top.core.regs.mem[1]==16'b0101_0101) $display("case 1 passed"); else $display("case 1 FAILED");
+
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+
+    // receive 0b0101_0101
+    uart_rx = 1; // idle
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0; // start bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // stop bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // idle
+    
+    #clk_tk // wait for register to be written
+    #clk_tk 
+    if (top.core.regs.mem[1]==16'b1010_1010_0101_0101) $display("case 2 passed"); else $display("case 2 FAILED");
+
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
 
     $finish;
 end

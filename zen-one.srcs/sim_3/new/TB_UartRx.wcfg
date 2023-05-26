@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="415.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="519.201 ns"></ZoomEndTime>
-      <Cursor1Time time="525.000 ns"></Cursor1Time>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="313.601 ns"></ZoomEndTime>
+      <Cursor1Time time="215.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="157"></NameColumnWidth>
-      <ValueColumnWidth column_width="88"></ValueColumnWidth>
+      <ValueColumnWidth column_width="80"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="12" />
+   <WVObjectSize size="13" />
    <wvobject type="logic" fp_name="/TB_UartRx/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -31,6 +31,11 @@
    <wvobject type="array" fp_name="/TB_UartRx/top/core/pc">
       <obj_property name="ElementShortName">pc[15:0]</obj_property>
       <obj_property name="ObjectShortName">pc[15:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/stp">
+      <obj_property name="ElementShortName">stp[3:0]</obj_property>
+      <obj_property name="ObjectShortName">stp[3:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/TB_UartRx/top/core/instr">
       <obj_property name="ElementShortName">instr[15:0]</obj_property>

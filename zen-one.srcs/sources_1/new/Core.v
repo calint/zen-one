@@ -186,10 +186,9 @@ always @(posedge clk) begin
             is_stall <= 1;
             stp <= 5;
         end else begin
-            // if reading or writing uart stay at same instruction
-            // until done.
+            // if reading or writing uart stay at same instruction until done.
             // note. instruction in context is the next instruction to execute
-            if (stp != 6 && stp != 7) begin
+            if (stp != 6 && stp != 7 && stp != 8) begin
                 pc <= pc + 1;
             end
         end
@@ -280,7 +279,7 @@ always @(posedge clk) begin
             end
         end
         
-        4'd7: begin // OP_OI_READ: wait for Uart to finish
+        4'd7: begin // OP_IO_READ: wait for Uart to finish
            if (urx_dr) begin // if data ready
                 if (urx_reg_hilo) begin
                     urx_reg_dat[15:8] <= urx_dat; // write the high byte
@@ -289,9 +288,13 @@ always @(posedge clk) begin
                 end
                 urx_go <= 0; // acknowledge the ready data has been read
                 urx_wb <= 1;
-                pc <= pc + 1;
-                stp <= 2;
+                stp <= 8;
             end
+        end
+        
+        4'd8: begin // one cycle to write back the register
+            pc <= pc + 1;
+            stp <= 2;
         end
         
         endcase
