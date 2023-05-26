@@ -194,7 +194,6 @@ localparam STP_UART_WRITE    = 6;
 localparam STP_UART_READ     = 7;
 localparam STP_UART_READ_WB  = 8;
 
-
 always @(posedge clk) begin
     `ifdef DBG
         $display("%0t: clk+: Core: %0d:%0h process", $time, pc, instr);
@@ -219,7 +218,7 @@ always @(posedge clk) begin
         urx_wb <= 0;
     end else begin
     
-        urx_wb <= 0; // ? ad-hoc
+        urx_wb <= 0; // disable writing 'urx_reg_dat'
         
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
