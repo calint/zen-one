@@ -45,7 +45,16 @@ reg [3:0] urx_reg;
 wire zn_zf;
 wire zn_nf;
 
+// enabled when previous instruction did execute
 reg was_do_op;
+
+// enabled when previous instruciton was 'ld'
+// the load instruction writes to registers during the second cycle
+reg was_op_ld;
+
+// the register to which the 'ld' instruction wants to write to
+// set in the first cycle of the instruction
+reg [3:0] ld_reg;
 
 wire instr_z = instr[0];
 wire instr_n = instr[1];
@@ -61,22 +70,32 @@ wire [3:0] regb =
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
-wire is_do_op = !is_ldi && !is_stall && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
-
 // enabled when the current instruction is not valid because of previous 
 // instruction being a 'jmp' or 'call'. in that case the next instruction
 // in the pipe-line should not be executed
 reg is_stall;
 
+wire is_do_op = !is_ldi && !is_stall && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+
 //
 // Calls
 //
 wire cs_call = is_do_op && instr_c && !instr_r;
+
 wire cs_ret = is_do_op && !instr_c && instr_r;
+
 wire cs_en = cs_call || cs_ret;
+
 wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
+
 wire cs_zf; // Calls -> Zn
+
 wire cs_nf; // Calls -> Zn
+
+//
+// Registers (part one)
+//
+wire [REGISTERS_WIDTH-1:0] rega_dat;
 
 //
 // ALU
@@ -98,7 +117,7 @@ wire alu_nf;
 wire [REGISTERS_WIDTH-1:0] alu_result;
 
 //
-// Registers
+// Registers (part two)
 //
 wire regs_we = 
     (was_do_op && (is_ldi || was_op_ld)) || 
@@ -110,17 +129,9 @@ wire [REGISTERS_WIDTH-1:0] regs_wd =
     is_do_op && is_alu_op ? alu_result :
     0;
 
-wire [REGISTERS_WIDTH-1:0] rega_dat;
-
 wire [REGISTERS_WIDTH-1:0] regb_dat;
 
-wire is_op_st = is_do_op && !is_jmp && instr_op == OP_ST;
-
-wire is_op_ld = is_do_op && !is_jmp && instr_op == OP_LD;
-
-reg was_op_ld;
-
-reg [3:0] ld_reg;
+wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
 // RAM
@@ -135,17 +146,15 @@ assign ram_wea = is_do_op && is_op_st && !was_op_ld;
 // Zn
 //
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
+
 wire zn_sel = cs_ret;
+
 wire zn_clr = cs_call;
 
+//
+// Core
+// 
 reg [3:0] stp;
-
-always @(negedge clk) begin
-    `ifdef DBG
-        $display("%0t: clk-: Core: stp=%0d, %0d:%0h", $time, stp, pc, instr);
-        $strobe("%0t: strobe clk-: Core: stp=%0d, [%0d]=%0h process", $time, stp, pc, instr);
-    `endif
-end
 
 always @(posedge clk) begin
     `ifdef DBG
