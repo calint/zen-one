@@ -20,8 +20,8 @@ module Core(
     output reg urx_go
 );
 
-localparam REGISTERS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
-localparam REGISTERS_WIDTH = 16; // 16 bit
+localparam REGS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
+localparam REGS_WIDTH = 16; // 16 bit
 localparam CALLS_ADDR_WIDTH = 6; // (2**6) 64
 localparam RAM_ADDR_WIDTH = 16; // (2**16) 64K
 
@@ -125,26 +125,25 @@ wire cs_nf;
 //
 // Registers (part one)
 //
-// register data of 'rega'
-wire [REGISTERS_WIDTH-1:0] rega_dat;
+// value of register 'rega'
+wire [REGS_WIDTH-1:0] rega_dat;
 
 //
 // ALU
 //
-// true if it is ALU op
 wire is_alu_op = is_do_op && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
     instr_op[3:1]; // same as upper 3 bits of op
-wire [REGISTERS_WIDTH-1:0] alu_operand_a =
-    instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGISTERS_WIDTH-4){rega[3]}},rega} : {{(REGISTERS_WIDTH-4){1'b0}},rega} + 1) : 
+wire [REGS_WIDTH-1:0] alu_operand_a =
+    instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
     rega_dat; // otherwise regs[a]
 // wire zero flag to Zn
 wire alu_zf;
 // wire negative flag to Zn
 wire alu_nf;
 // result of 'alu_operand_a' OP 'regb_dat'
-wire [REGISTERS_WIDTH-1:0] alu_result;
+wire [REGS_WIDTH-1:0] alu_result;
 
 //
 // Registers (part two)
@@ -154,22 +153,24 @@ wire regs_we =
     was_do_op && (is_ldi || is_ld) || 
     urx_wb; // if uart wants to write recieved data
 
-wire [REGISTERS_WIDTH-1:0] regs_wd =
+wire [REGS_WIDTH-1:0] regs_wd =
     is_alu_op ? alu_result :
     was_do_op && is_ldi ? instr :
     was_do_op && is_ld ? ram_doa :
     urx_reg_dat;
 
-wire [REGISTERS_WIDTH-1:0] regb_dat;
+wire [REGS_WIDTH-1:0] regb_dat;
 
 wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
 // RAM
 //
-assign ram_addra = rega_dat;
-assign ram_dia = regb_dat;
+// don't write enable if running second cycle of 'ld'
 assign ram_wea = is_op_st && !is_ld;
+assign ram_addra = rega_dat;
+// data that will be written if 'ram_wea'
+assign ram_dia = regb_dat;
 
 //
 // Zn
@@ -356,8 +357,8 @@ always @(posedge clk) begin
 end
 
 Registers #(
-    .ADDR_WIDTH(REGISTERS_ADDR_WIDTH),
-    .WIDTH(REGISTERS_WIDTH)
+    .ADDR_WIDTH(REGS_ADDR_WIDTH),
+    .WIDTH(REGS_WIDTH)
 ) regs ( // 16 x 16b
     .clk(clk),
     .ra1(rega),
@@ -369,7 +370,7 @@ Registers #(
 );
 
 ALU #(
-    .WIDTH(REGISTERS_WIDTH)
+    .WIDTH(REGS_WIDTH)
 ) alu (
 //    .clk(clk),
     .op(alu_op),
