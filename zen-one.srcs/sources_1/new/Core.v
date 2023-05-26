@@ -226,6 +226,7 @@ always @(posedge clk) begin
             // next instruction in the pipe should be ignored
             is_bubble <= 1;
             stp <= STP_BRANCH;
+            
         end else begin
             // if reading or writing uart stay at same instruction until done.
             // note. instruction in context is the next instruction in the pipe-line
@@ -248,6 +249,7 @@ always @(posedge clk) begin
             // remember for the next cycle if this was an executed instruction
             was_do_op <= is_do_op;
             if (is_do_op) begin
+
                 if (is_jmp) begin
                     pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc is ahead by 1 instruction
                     is_bubble <= 1;
@@ -267,14 +269,18 @@ always @(posedge clk) begin
                             urx_reg_dat <= regb_dat; // save current value of 'regb'
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
-                            pc <= pc; // stall fetch
+                            if (!cs_ret) begin
+                                pc <= pc; // overwrite pc to stall
+                            end
                             stp <= STP_UART_READ;
                         end 
                         
                         OP_IO_WRITE: begin // send blocking
                             utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
                             utx_go <= 1; // enable start of write
-                            pc <= pc; // stall fetch
+                            if (!cs_ret) begin
+                                pc <= pc; // overwrite pc to stall
+                            end
                             stp <= STP_UART_WRITE;
                         end                       
                         
@@ -298,7 +304,7 @@ always @(posedge clk) begin
                             is_ld <= 1;
                             ld_reg <= instr[15:12];
                             if (!cs_ret) begin
-                                pc <= pc; // overwrite pc to stall // ? 
+                                pc <= pc; // overwrite pc to stall
                             end
                             stp <= STP_LD_WB;
                         end
