@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="461.705 ns"></ZoomStartTime>
-      <ZoomEndTime time="591.659 ns"></ZoomEndTime>
-      <Cursor1Time time="570.000 ns"></Cursor1Time>
+      <ZoomStartTime time="659.406 ns"></ZoomStartTime>
+      <ZoomEndTime time="744.119 ns"></ZoomEndTime>
+      <Cursor1Time time="730.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="101"></NameColumnWidth>
+      <NameColumnWidth column_width="93"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="12" />
+   <WVObjectSize size="13" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -36,6 +36,10 @@
    <wvobject type="array" fp_name="/TB_Top/top/core/instr">
       <obj_property name="ElementShortName">instr[15:0]</obj_property>
       <obj_property name="ObjectShortName">instr[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_Top/top/core/stp">
+      <obj_property name="ElementShortName">stp[3:0]</obj_property>
+      <obj_property name="ObjectShortName">stp[3:0]</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/TB_Top/top/core/is_do_op">
       <obj_property name="ElementShortName">is_do_op</obj_property>
@@ -209,6 +213,10 @@
       <obj_property name="label">call</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/TB_Top/top/core/cs_en">
+         <obj_property name="ElementShortName">cs_en</obj_property>
+         <obj_property name="ObjectShortName">cs_en</obj_property>
+      </wvobject>
       <wvobject type="logic" fp_name="/TB_Top/top/core/cs_call">
          <obj_property name="ElementShortName">cs_call</obj_property>
          <obj_property name="ObjectShortName">cs_call</obj_property>

@@ -15,6 +15,14 @@ module Zn(
     output reg zf,
     output reg nf
 );
+
+reg zf_nxt;
+reg nf_nxt;
+
+always @(posedge clk) begin
+    zf <= zf_nxt;
+    nf <= nf_nxt;
+end
     
 always @(negedge clk) begin
     `ifdef DBG
@@ -22,16 +30,16 @@ always @(negedge clk) begin
     `endif
 
     if (rst) begin
-        zf <= 0;
-        nf <= 0;
+        zf_nxt <= 0;
+        nf_nxt <= 0;
     end else begin
         if (we) begin
             if (clr) begin
-                zf <= 0;
-                nf <= 0;
+                zf_nxt <= 0;
+                nf_nxt <= 0;
             end else begin
-                zf <= sel ? cs_zf : alu_zf;
-                nf <= sel ? cs_nf : alu_nf;
+                zf_nxt <= sel ? cs_zf : alu_zf;
+                nf_nxt <= sel ? cs_nf : alu_nf;
             end
         end
     end

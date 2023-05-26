@@ -159,7 +159,23 @@ initial begin
     #clk_tk; // [41] 005A: ifn call x0050
     #clk_tk; // wait for ram
     if (top.core.pc == 80)  $display("case 46 passed"); else $display("case 46 FAILED");
+
+    #clk_tk; // [80] 006B: call x0060
+    #clk_tk; // wait for ram
+    if (top.core.pc == 96)  $display("case 47 passed"); else $display("case 47 FAILED");
     
+    // r8 == 1, zn == 00
+    #clk_tk; // [96] 8116: ifn addi 2 r8 ret
+    if (top.core.pc == 97)  $display("case 48 passed"); else $display("case 48 FAILED");
+    if (top.core.regs.mem[8] == 1) $display("case 49 passed"); else $display("case 49 FAILED");
+    
+    #clk_tk; // [97] 8115: ifz addi 2 r8 ret
+    if (top.core.pc == 98)  $display("case 50 passed"); else $display("case 50 FAILED");
+    if (top.core.regs.mem[8] == 1) $display("case 51 passed"); else $display("case 51 FAILED");
+    
+    #clk_tk; // [98] 8114: ifp addi 2 r8 ret
+    if (top.core.pc == 81)  $display("case 52 passed"); else $display("case 52 FAILED");
+    if (top.core.regs.mem[8] == 3) $display("case 53 passed"); else $display("case 53 FAILED");
     
     $finish;
 end

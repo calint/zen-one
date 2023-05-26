@@ -97,7 +97,7 @@ wire [REGISTERS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     (was_do_op && (is_ldi || was_op_ld)) || 
-    (is_do_op && is_alu_op);
+    (is_do_op && is_alu_op && !is_calling);
     
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
@@ -154,8 +154,8 @@ always @(posedge clk) begin
         ld_reg <= 0;
         is_calling <= 0;
     end else begin
-
-        if (cs_ret) begin
+    
+        if (cs_ret && !is_calling) begin
             pc <= cs_pc_out;
             stp <= 5;
         end else begin
