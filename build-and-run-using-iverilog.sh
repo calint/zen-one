@@ -17,5 +17,7 @@ iverilog -o zen-one \
     $SRCPTH/Registers.v \
     $SRCPTH/ALU.v \
     $SRCPTH/Zn.v \
-    $SRCPTH/Calls.v
+    $SRCPTH/Calls.v \
+    $SRCPTH/UartTx.v \
+    $SRCPTH/UartRx.v
 vvp zen-one

@@ -55,13 +55,14 @@ reg [3:0] ldi_reg;
 //
 // UartRx
 //
+// the register to write to
 reg [3:0] urx_reg;
+// previous data of the register
 reg [15:0] urx_reg_dat;
+// write register high or low byte
 reg urx_reg_hilo;
-reg urx_wb; // enabled if 'urx_reg_dat' is written to 'urx_reg'
-
-wire zn_zf;
-wire zn_nf;
+// enabled when 'urx_reg_dat' is written to 'urx_reg'
+reg urx_wb;
 
 // enabled when previous instruction did execute
 reg was_do_op;
@@ -71,7 +72,7 @@ reg was_do_op;
 //
 // enabled when previous instruciton was 'ld'
 // the load instruction writes to register during the second cycle
-reg was_op_ld;
+reg is_op_ld;
 // the register to which the 'ld' instruction wants to write to
 // set in the first cycle of the instruction
 reg [3:0] ld_reg;
@@ -86,7 +87,7 @@ wire [3:0] instr_op = instr[7:4];
 wire [3:0] rega = instr[11:8];
 wire [3:0] regb =
     was_do_op && is_ldi ? ldi_reg :
-    was_do_op && was_op_ld ? ld_reg :
+    was_do_op && is_op_ld ? ld_reg :
     urx_wb ? urx_reg : 
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
@@ -96,50 +97,71 @@ wire [11:0] imm12 = instr[15:4];
 // in the pipe-line should not be executed
 reg is_bubble;
 
+//
+// Zen (part one)
+//
+wire zn_zf;
+wire zn_nf;
+
+// enabled if it is instruction and should execute
 wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
 //
+// true if it is a call
 wire cs_call = is_do_op && instr_c && !instr_r;
+// true if instruction is also a return from current call
 wire cs_ret = is_do_op && !instr_c && instr_r;
+// true if state of 'Calls' should change
 wire cs_en = cs_call || cs_ret;
+// program counter of the return address from current call
 wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
-wire cs_zf; // Calls -> Zn
-wire cs_nf; // Calls -> Zn
+// wire to Zn zero flag
+wire cs_zf;
+// wire to Zn negative flag
+wire cs_nf;
 
 //
 // Registers (part one)
 //
+// register data of 'rega'
 wire [REGISTERS_WIDTH-1:0] rega_dat;
 
 //
 // ALU
 //
-wire is_alu_op = !is_ldi && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
+// true if it is ALU op
+wire is_alu_op = is_do_op && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
     instr_op[3:1]; // same as upper 3 bits of op
 wire [REGISTERS_WIDTH-1:0] alu_operand_a =
     instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGISTERS_WIDTH-4){rega[3]}},rega} : {{(REGISTERS_WIDTH-4){1'b0}},rega} + 1) : 
     rega_dat; // otherwise regs[a]
+// wire zero flag to Zn
 wire alu_zf;
+// wire negative flag to Zn
 wire alu_nf;
+// result of 'alu_operand_a' OP 'regb_dat'
 wire [REGISTERS_WIDTH-1:0] alu_result;
 
 //
 // Registers (part two)
 //
 wire regs_we = 
-    (was_do_op && (is_ldi || was_op_ld)) || 
-    (is_do_op && is_alu_op) ||
-    urx_wb; // if uart read data    
+    is_alu_op ||
+    was_do_op && (is_ldi || is_op_ld) || 
+    urx_wb; // if uart wants to write read data
+
 wire [REGISTERS_WIDTH-1:0] regs_wd =
+    is_alu_op ? alu_result :
     was_do_op && is_ldi ? instr :
-    was_do_op && was_op_ld ? ram_doa :
-    is_do_op && is_alu_op ? alu_result :
+    was_do_op && is_op_ld ? ram_doa :
     urx_reg_dat;
+
 wire [REGISTERS_WIDTH-1:0] regb_dat;
+
 wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
@@ -147,7 +169,7 @@ wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 //
 assign ram_addra = rega_dat;
 assign ram_dia = regb_dat;
-assign ram_wea = is_do_op && is_op_st && !was_op_ld;
+assign ram_wea = is_op_st && !is_op_ld;
 
 //
 // Zn
@@ -182,7 +204,7 @@ always @(posedge clk) begin
         ldi_reg <= 0;
         urx_reg <= 0;
         was_do_op <= 0;
-        was_op_ld <= 0;
+        is_op_ld <= 0;
         ld_reg <= 0;
         is_bubble <= 0;
         led <= 0;
@@ -199,33 +221,41 @@ always @(posedge clk) begin
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
+            // next instruction in the pipe should be ignored
             is_bubble <= 1;
-            stp <= 5;
+            stp <= STP_BRANCH;
         end else begin
             // if reading or writing uart stay at same instruction until done.
-            // note. instruction in context is the next instruction to execute
-            if (stp != 6 && stp != 7 && stp != 8) begin
+            // note. instruction in context is the next instruction in the pipe-line
+            if (stp != STP_UART_WRITE && 
+                stp != STP_UART_READ && 
+                stp != STP_UART_READ_WB)
+            begin
                 pc <= pc + 1;
             end
         end
                 
         case(stp)
         
-        STP_START: begin 
-            stp <= 2;
+        // the first instruction is ignored for the pipe-line to get started
+        STP_START: begin
+            stp <= STP_EXECUTE;
         end
         
         STP_EXECUTE: begin
+            // remember for the next cycle if this was an executed instruction
             was_do_op <= is_do_op;
             if (is_do_op) begin
                 if (is_jmp) begin
                     pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
-                    is_bubble <= 1;                
+                    is_bubble <= 1;
                     stp <= STP_BRANCH;
+
                 end else if (cs_call) begin
                     pc <= imm12 << 4;
                     is_bubble <= 1;                
                     stp <= STP_BRANCH;
+
                 end else begin
                     if (instr_op == OP_LDI && rega != 0) begin
                         case(rega[2:0]) // operation encoded in 'rega'
@@ -237,16 +267,17 @@ always @(posedge clk) begin
                             pc <= pc;
                             stp <= STP_UART_READ;
                         end 
+                        
                         OP_IO_WRITE: begin // send blocking
                             utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
                             utx_go <= 1; // enable start of write
                             pc <= pc;
                             stp <= STP_UART_WRITE;
                         end                       
+                        
                         OP_IO_LED: begin // led and ledi
                             led <= rega[3] ? regb : regb_dat[3:0];
                         end
-                        default: $display("!!! unknown IO op");
                         endcase
                     end else begin
                         case(instr_op)
@@ -255,8 +286,9 @@ always @(posedge clk) begin
                             ldi_reg <= regb;
                             stp <= STP_LDI;
                         end
+
                         OP_LD: begin
-                            was_op_ld <= 1;
+                            is_op_ld <= 1;
                             ld_reg <= instr[15:12];
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall // ? 
@@ -276,7 +308,7 @@ always @(posedge clk) begin
         end
 
         STP_LD_WB: begin // OP_LD second part
-            was_op_ld <= 0;
+            is_op_ld <= 0;
             stp <= STP_EXECUTE;
         end
 
