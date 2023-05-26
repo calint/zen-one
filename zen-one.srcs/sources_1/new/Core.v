@@ -61,14 +61,18 @@ wire [3:0] regb =
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
-wire is_do_op = !is_ldi && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+wire is_do_op = !is_ldi && !is_stall && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+
+// enabled when the current instruction is not valid because of previous 
+// instruction being a 'jmp' or 'call'. in that case the next instruction
+// in the pipe-line should not be executed
+reg is_stall;
 
 //
 // Calls
 //
-reg is_calling;
-wire cs_call = is_do_op && !is_calling && instr_c && !instr_r;
-wire cs_ret = is_do_op && !is_calling && !instr_c && instr_r;
+wire cs_call = is_do_op && instr_c && !instr_r;
+wire cs_ret = is_do_op && !instr_c && instr_r;
 wire cs_en = cs_call || cs_ret;
 wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
 wire cs_zf; // Calls -> Zn
@@ -98,7 +102,7 @@ wire [REGISTERS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     (was_do_op && (is_ldi || was_op_ld)) || 
-    (is_do_op && is_alu_op && !is_calling);
+    (is_do_op && is_alu_op && !is_stall);
     
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
@@ -153,7 +157,7 @@ always @(posedge clk) begin
         was_do_op <= 0;
         was_op_ld <= 0;
         ld_reg <= 0;
-        is_calling <= 0;
+        is_stall <= 0;
     end else begin
     
         if (cs_ret) begin
@@ -177,10 +181,11 @@ always @(posedge clk) begin
             end else begin
                 if (is_jmp) begin
                     pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
+                    is_stall <= 1;                
                     stp <= 5;
                 end else if (cs_call) begin
                     pc <= imm12 << 4;
-                    is_calling <= 1;                
+                    is_stall <= 1;                
                     stp <= 5;
                 end else begin
                     case(instr_op)
@@ -212,8 +217,8 @@ always @(posedge clk) begin
             stp <= 2;
         end
 
-        4'd5: begin // call second part
-            is_calling <= 0;
+        4'd5: begin // jump / call second part waiting for next instruction
+            is_stall <= 0;
             stp <= 2;
         end
         
