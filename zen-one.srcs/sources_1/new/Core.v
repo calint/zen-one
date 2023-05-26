@@ -23,7 +23,7 @@ module Core(
 localparam REGISTERS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
 localparam REGISTERS_WIDTH = 16; // 16 bit
 localparam CALLS_ADDR_WIDTH = 6; // (2**6) 64
-localparam ROM_ADDR_WIDTH = 16; // (2**16) 64K
+localparam RAM_ADDR_WIDTH = 16; // (2**16) 64K
 
 localparam OP_ADDI = 4'b0001; // add immediate signed 4 bits value to 'regb' where imm4>=0?++imm4:-imm4
 localparam OP_LDI  = 4'b0011; // load immediate 16 bits from next instruction
@@ -72,7 +72,7 @@ reg was_do_op;
 //
 // enabled when previous instruciton was 'ld'
 // the load instruction writes to register during the second cycle
-reg is_op_ld;
+reg is_ld;
 // the register to which the 'ld' instruction wants to write to
 // set in the first cycle of the instruction
 reg [3:0] ld_reg;
@@ -87,7 +87,7 @@ wire [3:0] instr_op = instr[7:4];
 wire [3:0] rega = instr[11:8];
 wire [3:0] regb =
     was_do_op && is_ldi ? ldi_reg :
-    was_do_op && is_op_ld ? ld_reg :
+    was_do_op && is_ld ? ld_reg :
     urx_wb ? urx_reg : 
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
@@ -116,7 +116,7 @@ wire cs_ret = is_do_op && !instr_c && instr_r;
 // true if state of 'Calls' should change
 wire cs_en = cs_call || cs_ret;
 // program counter of the return address from current call
-wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
+wire [RAM_ADDR_WIDTH-1:0] cs_pc_out;
 // wire to Zn zero flag
 wire cs_zf;
 // wire to Zn negative flag
@@ -151,13 +151,13 @@ wire [REGISTERS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     is_alu_op ||
-    was_do_op && (is_ldi || is_op_ld) || 
-    urx_wb; // if uart wants to write read data
+    was_do_op && (is_ldi || is_ld) || 
+    urx_wb; // if uart wants to write recieved data
 
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     is_alu_op ? alu_result :
     was_do_op && is_ldi ? instr :
-    was_do_op && is_op_ld ? ram_doa :
+    was_do_op && is_ld ? ram_doa :
     urx_reg_dat;
 
 wire [REGISTERS_WIDTH-1:0] regb_dat;
@@ -169,13 +169,15 @@ wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 //
 assign ram_addra = rega_dat;
 assign ram_dia = regb_dat;
-assign ram_wea = is_op_st && !is_op_ld;
+assign ram_wea = is_op_st && !is_ld;
 
 //
 // Zn
 //
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
+// enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
 wire zn_sel = cs_ret;
+// enabled if flags should be cleared
 wire zn_clr = cs_call;
 
 //
@@ -204,7 +206,7 @@ always @(posedge clk) begin
         ldi_reg <= 0;
         urx_reg <= 0;
         was_do_op <= 0;
-        is_op_ld <= 0;
+        is_ld <= 0;
         ld_reg <= 0;
         is_bubble <= 0;
         led <= 0;
@@ -247,7 +249,7 @@ always @(posedge clk) begin
             was_do_op <= is_do_op;
             if (is_do_op) begin
                 if (is_jmp) begin
-                    pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
+                    pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc is ahead by 1 instruction
                     is_bubble <= 1;
                     stp <= STP_BRANCH;
 
@@ -259,28 +261,33 @@ always @(posedge clk) begin
                 end else begin
                     if (instr_op == OP_LDI && rega != 0) begin
                         case(rega[2:0]) // operation encoded in 'rega'
+
                         OP_IO_READ: begin // receive blocking
                             urx_reg <= regb; // save 'regb' to be used at write register
                             urx_reg_dat <= regb_dat; // save current value of 'regb'
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
-                            pc <= pc;
+                            pc <= pc; // stall fetch
                             stp <= STP_UART_READ;
                         end 
                         
                         OP_IO_WRITE: begin // send blocking
                             utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
                             utx_go <= 1; // enable start of write
-                            pc <= pc;
+                            pc <= pc; // stall fetch
                             stp <= STP_UART_WRITE;
                         end                       
                         
                         OP_IO_LED: begin // led and ledi
                             led <= rega[3] ? regb : regb_dat[3:0];
                         end
+
                         endcase
+
                     end else begin
+                        
                         case(instr_op)
+                        
                         OP_LDI: begin
                             is_ldi <= 1;
                             ldi_reg <= regb;
@@ -288,13 +295,14 @@ always @(posedge clk) begin
                         end
 
                         OP_LD: begin
-                            is_op_ld <= 1;
+                            is_ld <= 1;
                             ld_reg <= instr[15:12];
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall // ? 
                             end
                             stp <= STP_LD_WB;
                         end
+                        
                         endcase
                     end // instr_op == OP_LDI && rega != 0
                 end // is_jmp
@@ -308,7 +316,7 @@ always @(posedge clk) begin
         end
 
         STP_LD_WB: begin // OP_LD second part
-            is_op_ld <= 0;
+            is_ld <= 0;
             stp <= STP_EXECUTE;
         end
 
@@ -388,7 +396,7 @@ Zn zn (
 
 Calls #(
     .ADDR_WIDTH(CALLS_ADDR_WIDTH),
-    .ROM_ADDR_WIDTH(ROM_ADDR_WIDTH)
+    .RAM_ADDR_WIDTH(RAM_ADDR_WIDTH)
 ) cs (
     .rst(rst),
     .clk(clk),
@@ -397,7 +405,7 @@ Calls #(
     .nf_in(zn_nf), // current negative flag
     .call(cs_call), // enabled when it is a 'call'
     .ret(cs_ret), // enabled when instruction is also 'return'
-    .en(cs_en), // enables 'push' or 'pop'
+    .en(cs_en), // enables 'call' or 'ret'
     .pc_out(cs_pc_out), // top of stack program counter
     .zf_out(cs_zf), // top of stack zero flag
     .nf_out(cs_nf) // top of stack negative flag

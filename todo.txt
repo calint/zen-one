@@ -1,3 +1,4 @@
+[ ] Registers with two write ports to make 'ld' to one cycle
 -----------------------------------------------------------------------------
 [x] UartRx
 [x]   test bench
