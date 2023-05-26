@@ -102,7 +102,7 @@ wire [REGISTERS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     (was_do_op && (is_ldi || was_op_ld)) || 
-    (is_do_op && is_alu_op && !is_stall);
+    (is_do_op && is_alu_op);
     
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
@@ -122,9 +122,14 @@ reg was_op_ld;
 
 reg [3:0] ld_reg;
 
+//
+// RAM
+//
 assign ram_addra = rega_dat;
+
 assign ram_dia = regb_dat;
-assign ram_wea = is_op_st && !was_op_ld;
+
+assign ram_wea = is_do_op && is_op_st && !was_op_ld;
 
 //
 // Zn
@@ -163,6 +168,7 @@ always @(posedge clk) begin
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
+            is_stall <= 1;
             stp <= 5;
         end else begin
             pc <= pc + 1;
@@ -217,7 +223,7 @@ always @(posedge clk) begin
             stp <= 2;
         end
 
-        4'd5: begin // jump / call second part waiting for next instruction
+        4'd5: begin // jump / call / ret second part waiting for next instruction
             is_stall <= 0;
             stp <= 2;
         end
