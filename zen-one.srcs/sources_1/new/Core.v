@@ -48,9 +48,13 @@ reg is_ldi;
 
 reg [3:0] ldi_reg;
 
-reg urx_reg_sel;
-
+//
+// UartRx
+//
 reg [3:0] urx_reg;
+reg [15:0] urx_reg_dat;
+reg urx_reg_hilo;
+reg urx_wb; // enabled if 'urx_reg_dat' is written to 'urx_reg'
 
 wire zn_zf;
 wire zn_nf;
@@ -76,7 +80,7 @@ wire [3:0] rega = instr[11:8];
 wire [3:0] regb =
     was_do_op && is_ldi ? ldi_reg :
     was_do_op && was_op_ld ? ld_reg :
-    was_do_op && urx_reg_sel ? urx_reg : 
+    urx_wb ? urx_reg : 
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
@@ -91,15 +95,10 @@ wire is_do_op = !is_ldi && !is_stall && ((instr_z && instr_n) || (zn_zf == instr
 // Calls
 //
 wire cs_call = is_do_op && instr_c && !instr_r;
-
 wire cs_ret = is_do_op && !instr_c && instr_r;
-
 wire cs_en = cs_call || cs_ret;
-
 wire [ROM_ADDR_WIDTH-1:0] cs_pc_out;
-
 wire cs_zf; // Calls -> Zn
-
 wire cs_nf; // Calls -> Zn
 
 //
@@ -111,19 +110,14 @@ wire [REGISTERS_WIDTH-1:0] rega_dat;
 // ALU
 //
 wire is_alu_op = !is_ldi && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
-
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
     instr_op[3:1]; // same as upper 3 bits of op
-
 wire [REGISTERS_WIDTH-1:0] alu_operand_a =
     instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGISTERS_WIDTH-4){rega[3]}},rega} : {{(REGISTERS_WIDTH-4){1'b0}},rega} + 1) : 
     rega_dat; // otherwise regs[a]
-
 wire alu_zf;
-
 wire alu_nf;
-
 wire [REGISTERS_WIDTH-1:0] alu_result;
 
 //
@@ -131,34 +125,28 @@ wire [REGISTERS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     (was_do_op && (is_ldi || was_op_ld)) || 
-    (is_do_op && is_alu_op);
-    
+    (is_do_op && is_alu_op) ||
+    urx_wb; // if uart read data    
 wire [REGISTERS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
     was_do_op && was_op_ld ? ram_doa :
     is_do_op && is_alu_op ? alu_result :
-    0;
-
+    urx_reg_dat;
 wire [REGISTERS_WIDTH-1:0] regb_dat;
-
 wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
 // RAM
 //
 assign ram_addra = rega_dat;
-
 assign ram_dia = regb_dat;
-
 assign ram_wea = is_do_op && is_op_st && !was_op_ld;
 
 //
 // Zn
 //
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
-
 wire zn_sel = cs_ret;
-
 wire zn_clr = cs_call;
 
 //
@@ -176,7 +164,6 @@ always @(posedge clk) begin
         stp <= 1;
         is_ldi <=0;
         ldi_reg <= 0;
-        urx_reg_sel <=0;
         urx_reg <= 0;
         was_do_op <= 0;
         was_op_ld <= 0;
@@ -186,16 +173,23 @@ always @(posedge clk) begin
         utx_dat <= 0;
         utx_go <= 0;
         urx_go <= 0;
+        urx_reg_dat <= 0;
+        urx_reg_hilo <= 0;
+        urx_wb <= 0;
     end else begin
     
+        urx_wb <= 0; // ? ad-hoc
+        
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
             is_stall <= 1;
             stp <= 5;
         end else begin
-            // if reading or writing uart stay at same instruction until done
-            if (stp != 6) begin
+            // if reading or writing uart stay at same instruction
+            // until done.
+            // note. instruction in context is the next instruction to execute
+            if (stp != 6 && stp != 7) begin
                 pc <= pc + 1;
             end
         end
@@ -222,14 +216,14 @@ always @(posedge clk) begin
                 end else begin
                     if (instr_op == OP_LDI && rega != 0) begin
                         case(rega[2:0]) // operation encoded in 'rega'
-/*                        OP_IO_READ: begin // receive blocking
+                        OP_IO_READ: begin // receive blocking
                             urx_reg <= regb; // save 'regb' to be used at write register
-                            urx_reg_dat <= regs_dat_b; // save current value of 'regb'
+                            urx_reg_dat <= regb_dat; // save current value of 'regb'
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
-                            stp <= 1 << STP_BIT_UART_RECEIVING;
+                            pc <= pc;
+                            stp <= 7;
                         end 
-                        */
                         OP_IO_WRITE: begin // send blocking
                             utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
                             utx_go <= 1; // enable start of write
@@ -281,6 +275,20 @@ always @(posedge clk) begin
         4'd6: begin // OP_IO_WRITE: wait for Uart to finish
             if (!utx_bsy) begin
                 utx_go <= 0; // acknowledge that the write is done
+                pc <= pc + 1;
+                stp <= 2;
+            end
+        end
+        
+        4'd7: begin // OP_OI_READ: wait for Uart to finish
+           if (urx_dr) begin // if data ready
+                if (urx_reg_hilo) begin
+                    urx_reg_dat[15:8] <= urx_dat; // write the high byte
+                end else begin
+                    urx_reg_dat[7:0] <= urx_dat; // write the low byte
+                end
+                urx_go <= 0; // acknowledge the ready data has been read
+                urx_wb <= 1;
                 pc <= pc + 1;
                 stp <= 2;
             end

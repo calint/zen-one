@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="TB_UartRx_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="TB_UartRx" />
+            <top_module name="glbl" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="415.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="519.201 ns"></ZoomEndTime>
+      <Cursor1Time time="525.000 ns"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="157"></NameColumnWidth>
+      <ValueColumnWidth column_width="88"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="12" />
+   <wvobject type="logic" fp_name="/TB_UartRx/rst">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_UartRx/clk">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/pc">
+      <obj_property name="ElementShortName">pc[15:0]</obj_property>
+      <obj_property name="ObjectShortName">pc[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/instr">
+      <obj_property name="ElementShortName">instr[15:0]</obj_property>
+      <obj_property name="ObjectShortName">instr[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_UartRx/uart_rx">
+      <obj_property name="ElementShortName">uart_rx</obj_property>
+      <obj_property name="ObjectShortName">uart_rx</obj_property>
+   </wvobject>
+   <wvobject type="group" fp_name="group11688">
+      <obj_property name="label">urx</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <obj_property name="isExpanded"></obj_property>
+      <wvobject type="logic" fp_name="/TB_UartRx/top/urx/go">
+         <obj_property name="ElementShortName">go</obj_property>
+         <obj_property name="ObjectShortName">go</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/TB_UartRx/top/urx/data">
+         <obj_property name="ElementShortName">data[7:0]</obj_property>
+         <obj_property name="ObjectShortName">data[7:0]</obj_property>
+      </wvobject>
+      <wvobject type="array" fp_name="/TB_UartRx/top/urx/state">
+         <obj_property name="ElementShortName">state[2:0]</obj_property>
+         <obj_property name="ObjectShortName">state[2:0]</obj_property>
+      </wvobject>
+      <wvobject type="logic" fp_name="/TB_UartRx/top/urx/dr">
+         <obj_property name="ElementShortName">dr</obj_property>
+         <obj_property name="ObjectShortName">dr</obj_property>
+      </wvobject>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_UartRx/top/core/regs_we">
+      <obj_property name="ElementShortName">regs_we</obj_property>
+      <obj_property name="ObjectShortName">regs_we</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_UartRx/top/core/urx_reg_hilo">
+      <obj_property name="ElementShortName">urx_reg_hilo</obj_property>
+      <obj_property name="ObjectShortName">urx_reg_hilo</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/urx_reg">
+      <obj_property name="ElementShortName">urx_reg[3:0]</obj_property>
+      <obj_property name="ObjectShortName">urx_reg[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/regb">
+      <obj_property name="ElementShortName">regb[3:0]</obj_property>
+      <obj_property name="ObjectShortName">regb[3:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/urx_reg_dat">
+      <obj_property name="ElementShortName">urx_reg_dat[15:0]</obj_property>
+      <obj_property name="ObjectShortName">urx_reg_dat[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_UartRx/top/core/regs_wd">
+      <obj_property name="ElementShortName">regs_wd[15:0]</obj_property>
+      <obj_property name="ObjectShortName">regs_wd[15:0]</obj_property>
+   </wvobject>
+</wave_config>

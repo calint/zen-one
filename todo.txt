@@ -1,5 +1,7 @@
-[ ] ledi
-[ ] led
-[ ] UartTx
-[ ] UartRx
-[ ]   test bench
+-----------------------------------------------------------------------------
+[x] UartRx
+[x]   test bench
+[x] UartTx
+[x]   test bench
+[x] ledi
+[x] led

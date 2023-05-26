@@ -1,0 +1,4 @@
+loop:
+    rl r1
+    rh r1
+    jmp loop
