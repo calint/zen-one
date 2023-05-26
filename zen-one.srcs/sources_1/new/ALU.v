@@ -5,6 +5,7 @@
 module ALU #(
     parameter WIDTH = 16
 )(
+//    input wire clk,
     input wire [2:0] op, // operation
     input wire signed [WIDTH-1:0] a, // first operand
     input wire signed [WIDTH-1:0] b, // second operand
@@ -13,7 +14,8 @@ module ALU #(
     output reg nf // enabled if result is negative
 );
 
-always @(*) begin
+always @* begin
+//always @(posedge clk) begin
 //      $display("   * : ALU: (op,a,b)=(%d,%d,%d)", op, a, b);
     `ifdef DBG
         $display("   * : ALU");

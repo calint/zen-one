@@ -29,7 +29,7 @@ initial begin
     end
 end
 
-always @(negedge clk) begin
+always @(posedge clk) begin
     `ifdef DBG
         $display("%0t: clk+: Calls: pc=%0d, en=%0d, call=%0d, ret=%0d", $time, pc_in, en, call, ret);
     `endif
@@ -43,11 +43,13 @@ always @(negedge clk) begin
         if (en) begin
             if (call) begin
                 idx = idx + 1;
+                $display("*** call from: %0d, idx=%0d", pc_in, idx);
                 mem[idx] <= {zf_in, nf_in, pc_in};
                 zf_out <= zf_in;
                 nf_out <= nf_in;
                 pc_out <= pc_in;
             end else if (ret) begin
+                $display("*** ret to: %0d, idx=%0d", mem[idx][ROM_ADDR_WIDTH-1:0], idx);
                 zf_out <= mem[idx][ROM_ADDR_WIDTH+1];
                 nf_out <= mem[idx][ROM_ADDR_WIDTH];
                 pc_out <= mem[idx][ROM_ADDR_WIDTH-1:0];

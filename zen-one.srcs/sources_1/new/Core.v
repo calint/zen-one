@@ -5,9 +5,9 @@
 module Core(
     input wire rst,
     input wire clk,
-    output reg [ROM_ADDR_WIDTH-1:0] pc,
+    output reg [15:0] pc,
     input wire [15:0] instr,
-    output wire [ROM_ADDR_WIDTH-1:0] ram_addra,
+    output wire [15:0] ram_addra,
     input wire [15:0] ram_doa,
     output wire [15:0] ram_dia,
     output wire ram_wea
@@ -45,7 +45,6 @@ reg [3:0] urx_reg;
 wire zn_zf;
 wire zn_nf;
 
-wire is_do_op = !is_ldi && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 reg was_do_op;
 
 wire instr_z = instr[0];
@@ -61,6 +60,8 @@ wire [3:0] regb =
     was_do_op && urx_reg_sel ? urx_reg : 
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
+
+wire is_do_op = !is_ldi && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -235,6 +236,7 @@ Registers #(
 ALU #(
     .WIDTH(REGISTERS_WIDTH)
 ) alu (
+//    .clk(clk),
     .op(alu_op),
     .a(alu_operand_a),
     .b(regb_dat),

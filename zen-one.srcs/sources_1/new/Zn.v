@@ -15,31 +15,23 @@ module Zn(
     output reg zf,
     output reg nf
 );
-
-reg zf_nxt;
-reg nf_nxt;
-
-always @(posedge clk) begin
-    zf <= zf_nxt;
-    nf <= nf_nxt;
-end
     
-always @(negedge clk) begin
+always @(posedge clk) begin
     `ifdef DBG
         $display("%0t: clk+: Zn (zf,nf)=(%0d,%0d)", $time, zf, nf);
     `endif
 
     if (rst) begin
-        zf_nxt <= 0;
-        nf_nxt <= 0;
+        zf <= 0;
+        nf <= 0;
     end else begin
         if (we) begin
             if (clr) begin
-                zf_nxt <= 0;
-                nf_nxt <= 0;
+                zf <= 0;
+                nf <= 0;
             end else begin
-                zf_nxt <= sel ? cs_zf : alu_zf;
-                nf_nxt <= sel ? cs_nf : alu_nf;
+                zf <= sel ? cs_zf : alu_zf;
+                nf <= sel ? cs_nf : alu_nf;
             end
         end
     end

@@ -135,7 +135,7 @@ public class zasm {
     // String compiled = toc.toHexString();
     String compiled = tc.toAnnotatedHexString(padTo64K); // false: don't pad to 64K
 
-    String compiledPathStr = srcPathStr.substring(0, srcPathStr.lastIndexOf('.')) + ".hex";
+    String compiledPathStr = srcPathStr.substring(0, srcPathStr.lastIndexOf('.')) + ".mem";
     Files.writeString(Paths.get(compiledPathStr), compiled);
     System.out.println("    wrote: " + compiledPathStr);
     System.out.println("     size: " + tc.getProgramCounter());
