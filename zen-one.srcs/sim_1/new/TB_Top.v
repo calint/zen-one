@@ -175,27 +175,37 @@ initial begin
     
     #clk_tk; // [98] 8114: ifp addi 2 r8 ret
     #clk_tk; // wait for ram
-    if (top.core.pc == 81)  $display("case 52 passed"); else $display("case 52 FAILED");
+    if (top.core.pc == 81) $display("case 52 passed"); else $display("case 52 FAILED");
     if (top.core.regs.mem[8] == 3) $display("case 53 passed"); else $display("case 53 FAILED");
     
     #clk_tk; // [81] 8117: addi 2 r8 ret
     #clk_tk; // wait for ram
-    if (top.core.pc == 42)  $display("case 54 passed"); else $display("case 54 FAILED");
+    if (top.core.pc == 42) $display("case 54 passed"); else $display("case 54 FAILED");
     if (top.core.regs.mem[8] == 5) $display("case 55 passed"); else $display("case 55 FAILED");
         
     #clk_tk; // [42] 007B: call x0070
     #clk_tk; // wait for ram
-    if (top.core.pc == 112)  $display("case 56 passed"); else $display("case 56 FAILED");
+    if (top.core.pc == 112) $display("case 56 passed"); else $display("case 56 FAILED");
     
     #clk_tk; // [112] 9037: ldi 0xdcba r9  ret
     #clk_tk; // [113] DCBA
-    if (top.core.pc == 43)  $display("case 57 passed"); else $display("case 57 FAILED");
+    if (top.core.pc == 43) $display("case 57 passed"); else $display("case 57 FAILED");
     #clk_tk; // wait for ram
     if (top.core.regs.mem[9] == 16'hdcba) $display("case 58 passed"); else $display("case 58 FAILED");
     
     #clk_tk; // [43] AF33: ledi 0b1010
+    if (top.core.led == 4'b1010) $display("case 59 passed"); else $display("case 59 FAILED");
+    
     #clk_tk; // [44] 9733: led r9        # r9==0xdcba => led==0xa
-    #clk_tk; // [45] 004F: jmp x007
+    if (top.core.led == 4'ha) $display("case 60 passed"); else $display("case 61 FAILED");
+
+    #clk_tk; // [45] 013F: jmp x0040
+    if (top.core.pc == 64) $display("case 61 passed"); else $display("case 61 FAILED");
+    
+    #clk_tk;
+    #clk_tk;
+    #clk_tk;
+    #clk_tk;
     
     $finish;
 end

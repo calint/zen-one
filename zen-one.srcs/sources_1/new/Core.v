@@ -10,7 +10,14 @@ module Core(
     output wire [15:0] ram_addra,
     input wire [15:0] ram_doa,
     output wire [15:0] ram_dia,
-    output wire ram_wea
+    output wire ram_wea,
+    output reg [3:0] led,
+    output reg [7:0] utx_dat,
+    output reg utx_go,
+    input wire utx_bsy,
+    input wire [7:0] urx_dat,
+    input wire urx_dr,
+    output reg urx_go
 );
 
 localparam REGISTERS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
@@ -38,8 +45,11 @@ localparam ALU_CP  = 3'b110; // copy 'rega' to 'regb'
 localparam ALU_SHF = 3'b111; // shift immediate signed 4 bits value of 'regb' where imm4>=0?++imm4:-imm4
 
 reg is_ldi;
+
 reg [3:0] ldi_reg;
+
 reg urx_reg_sel;
+
 reg [3:0] urx_reg;
 
 wire zn_zf;
@@ -172,6 +182,10 @@ always @(posedge clk) begin
         was_op_ld <= 0;
         ld_reg <= 0;
         is_stall <= 0;
+        led <= 0;
+        utx_dat <= 0;
+        utx_go <= 0;
+        urx_go <= 0;
     end else begin
     
         if (cs_ret) begin
@@ -180,7 +194,10 @@ always @(posedge clk) begin
             is_stall <= 1;
             stp <= 5;
         end else begin
-            pc <= pc + 1;
+            // if reading or writing uart stay at same instruction until done
+            if (stp != 6) begin
+                pc <= pc + 1;
+            end
         end
                 
         case(stp)
@@ -203,27 +220,51 @@ always @(posedge clk) begin
                     is_stall <= 1;                
                     stp <= 5;
                 end else begin
-                    case(instr_op)
-                    OP_LDI: begin
-                        is_ldi <= 1;
-                        ldi_reg <= regb;
-                        stp <= 3;
-                    end
-                    OP_LD: begin
-                        was_op_ld <= 1;
-                        ld_reg <= instr[15:12];
-                        if (!cs_ret) begin
-                            pc <= pc; // overwrite pc to stall
+                    if (instr_op == OP_LDI && rega != 0) begin
+                        case(rega[2:0]) // operation encoded in 'rega'
+/*                        OP_IO_READ: begin // receive blocking
+                            urx_reg <= regb; // save 'regb' to be used at write register
+                            urx_reg_dat <= regs_dat_b; // save current value of 'regb'
+                            urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
+                            urx_go <= 1; // enable start read
+                            stp <= 1 << STP_BIT_UART_RECEIVING;
+                        end 
+                        */
+                        OP_IO_WRITE: begin // send blocking
+                            utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
+                            utx_go <= 1; // enable start of write
+                            pc <= pc;
+                            stp <= 6;
+                        end                       
+                        OP_IO_LED: begin // led and ledi
+                            led <= rega[3] ? regb : regb_dat[3:0];
                         end
-                        stp <= 4;
-                    end
-                    endcase
+                        default: $display("!!! unknown IO op");
+                        endcase
+                    end else begin
+                        case(instr_op)
+                        OP_LDI: begin
+                            is_ldi <= 1;
+                            ldi_reg <= regb;
+                            stp <= 3;
+                        end
+                        OP_LD: begin
+                            was_op_ld <= 1;
+                            ld_reg <= instr[15:12];
+                            if (!cs_ret) begin
+                                pc <= pc; // overwrite pc to stall // ? 
+                            end
+                            stp <= 4;
+                        end
+                        endcase
+                    end // instr_op == OP_LDI && rega != 0
                 end // is_jmp
             end // !is_do_op
         end // case
 
         4'd3: begin // OP_LDI second part
             is_ldi <= 0;
+            is_stall <= 0;
             stp <= 2;
         end
 
@@ -232,9 +273,17 @@ always @(posedge clk) begin
             stp <= 2;
         end
 
-        4'd5: begin // jump / call / ret second part waiting for next instruction
+        4'd5: begin // jump / call / ret second part, waiting for next instruction
             is_stall <= 0;
             stp <= 2;
+        end
+        
+        4'd6: begin // OP_IO_WRITE: wait for Uart to finish
+            if (!utx_bsy) begin
+                utx_go <= 0; // acknowledge that the write is done
+                pc <= pc + 1;
+                stp <= 2;
+            end
         end
         
         endcase

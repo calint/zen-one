@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="648.925 ns"></ZoomStartTime>
-      <ZoomEndTime time="734.216 ns"></ZoomEndTime>
-      <Cursor1Time time="720.000 ns"></Cursor1Time>
+      <ZoomStartTime time="725.600 ns"></ZoomStartTime>
+      <ZoomEndTime time="839.001 ns"></ZoomEndTime>
+      <Cursor1Time time="820.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="85"></NameColumnWidth>
+      <NameColumnWidth column_width="81"></NameColumnWidth>
       <ValueColumnWidth column_width="66"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="15" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -89,10 +89,6 @@
    <wvobject type="group" fp_name="group666">
       <obj_property name="label">op_ld</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <wvobject type="logic" fp_name="/TB_Top/top/core/is_op_ld">
-         <obj_property name="ElementShortName">is_op_ld</obj_property>
-         <obj_property name="ObjectShortName">is_op_ld</obj_property>
-      </wvobject>
       <wvobject type="logic" fp_name="/TB_Top/top/core/was_op_ld">
          <obj_property name="ElementShortName">was_op_ld</obj_property>
          <obj_property name="ObjectShortName">was_op_ld</obj_property>
@@ -221,7 +217,6 @@
    <wvobject type="group" fp_name="group3110">
       <obj_property name="label">call</obj_property>
       <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
       <wvobject type="logic" fp_name="/TB_Top/top/core/cs_en">
          <obj_property name="ElementShortName">cs_en</obj_property>
          <obj_property name="ObjectShortName">cs_en</obj_property>
@@ -234,5 +229,9 @@
          <obj_property name="ElementShortName">cs_ret</obj_property>
          <obj_property name="ObjectShortName">cs_ret</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_Top/top/core/led">
+      <obj_property name="ElementShortName">led[3:0]</obj_property>
+      <obj_property name="ObjectShortName">led[3:0]</obj_property>
    </wvobject>
 </wave_config>

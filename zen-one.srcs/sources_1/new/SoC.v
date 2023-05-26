@@ -3,7 +3,8 @@
 `define DBG
 
 module SoC #(
-    parameter ROM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_1/new/TB_Top.mem"
+//    parameter ROM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_1/new/TB_Top.mem"
+    parameter ROM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_2/new/TB_Uart.mem"
 )(
     input wire reset,
     input wire clk_in,
@@ -16,6 +17,9 @@ module SoC #(
     output wire led0_b
 );
 
+localparam CLK_FREQ = 66_000_000;
+localparam BAUD_RATE = 9600;
+
 wire clk;
 wire clk_locked;
 
@@ -27,7 +31,9 @@ Clocking clocking (
 );
 
 Top #(
-    .ROM_FILE(ROM_FILE)
+    .ROM_FILE(ROM_FILE),
+    .CLK_FREQ(CLK_FREQ),
+    .BAUD_RATE(BAUD_RATE)
 ) top (
     .reset(!clk_locked),
     .clk_in(clk),
