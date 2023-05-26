@@ -44,8 +44,12 @@ localparam ALU_NOT = 3'b101; // bitwise not 'rega' to 'regb'
 localparam ALU_CP  = 3'b110; // copy 'rega' to 'regb'
 localparam ALU_SHF = 3'b111; // shift immediate signed 4 bits value of 'regb' where imm4>=0?++imm4:-imm4
 
+//
+// load immediate (ldi)
+//
+// enabled if in data part of the instruction
 reg is_ldi;
-
+// destination register saved from previous cycle
 reg [3:0] ldi_reg;
 
 //
@@ -62,14 +66,17 @@ wire zn_nf;
 // enabled when previous instruction did execute
 reg was_do_op;
 
+//
+// load (ld)
+//
 // enabled when previous instruciton was 'ld'
-// the load instruction writes to registers during the second cycle
+// the load instruction writes to register during the second cycle
 reg was_op_ld;
-
 // the register to which the 'ld' instruction wants to write to
 // set in the first cycle of the instruction
 reg [3:0] ld_reg;
 
+// the instruction
 wire instr_z = instr[0];
 wire instr_n = instr[1];
 wire instr_r = instr[2];
@@ -87,9 +94,9 @@ wire [11:0] imm12 = instr[15:4];
 // enabled when the current instruction is not valid because of previous 
 // instruction being a 'jmp' or 'call'. in that case the next instruction
 // in the pipe-line should not be executed
-reg is_stall;
+reg is_bubble;
 
-wire is_do_op = !is_ldi && !is_stall && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -153,6 +160,15 @@ wire zn_clr = cs_call;
 // Core
 // 
 reg [3:0] stp;
+localparam STP_START         = 1;
+localparam STP_EXECUTE       = 2;
+localparam STP_LDI           = 3;
+localparam STP_LD_WB         = 4;
+localparam STP_BRANCH        = 5;
+localparam STP_UART_WRITE    = 6;
+localparam STP_UART_READ     = 7;
+localparam STP_UART_READ_WB  = 8;
+
 
 always @(posedge clk) begin
     `ifdef DBG
@@ -168,7 +184,7 @@ always @(posedge clk) begin
         was_do_op <= 0;
         was_op_ld <= 0;
         ld_reg <= 0;
-        is_stall <= 0;
+        is_bubble <= 0;
         led <= 0;
         utx_dat <= 0;
         utx_go <= 0;
@@ -183,7 +199,7 @@ always @(posedge clk) begin
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
-            is_stall <= 1;
+            is_bubble <= 1;
             stp <= 5;
         end else begin
             // if reading or writing uart stay at same instruction until done.
@@ -195,23 +211,21 @@ always @(posedge clk) begin
                 
         case(stp)
         
-        4'd1: begin 
-            $display("%0t: clk+: Core: %0d:%0h boot", $time, pc, instr);
+        STP_START: begin 
             stp <= 2;
         end
         
-        4'd2: begin
+        STP_EXECUTE: begin
             was_do_op <= is_do_op;
-            if (!is_do_op) begin
-            end else begin
+            if (is_do_op) begin
                 if (is_jmp) begin
                     pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc ahead by 1 instruction
-                    is_stall <= 1;                
-                    stp <= 5;
+                    is_bubble <= 1;                
+                    stp <= STP_BRANCH;
                 end else if (cs_call) begin
                     pc <= imm12 << 4;
-                    is_stall <= 1;                
-                    stp <= 5;
+                    is_bubble <= 1;                
+                    stp <= STP_BRANCH;
                 end else begin
                     if (instr_op == OP_LDI && rega != 0) begin
                         case(rega[2:0]) // operation encoded in 'rega'
@@ -221,13 +235,13 @@ always @(posedge clk) begin
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
                             pc <= pc;
-                            stp <= 7;
+                            stp <= STP_UART_READ;
                         end 
                         OP_IO_WRITE: begin // send blocking
                             utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
                             utx_go <= 1; // enable start of write
                             pc <= pc;
-                            stp <= 6;
+                            stp <= STP_UART_WRITE;
                         end                       
                         OP_IO_LED: begin // led and ledi
                             led <= rega[3] ? regb : regb_dat[3:0];
@@ -239,7 +253,7 @@ always @(posedge clk) begin
                         OP_LDI: begin
                             is_ldi <= 1;
                             ldi_reg <= regb;
-                            stp <= 3;
+                            stp <= STP_LDI;
                         end
                         OP_LD: begin
                             was_op_ld <= 1;
@@ -247,7 +261,7 @@ always @(posedge clk) begin
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall // ? 
                             end
-                            stp <= 4;
+                            stp <= STP_LD_WB;
                         end
                         endcase
                     end // instr_op == OP_LDI && rega != 0
@@ -255,31 +269,31 @@ always @(posedge clk) begin
             end // !is_do_op
         end // case
 
-        4'd3: begin // OP_LDI second part
+        STP_LDI: begin // OP_LDI second part
             is_ldi <= 0;
-            is_stall <= 0;
-            stp <= 2;
+            is_bubble <= 0;
+            stp <= STP_EXECUTE;
         end
 
-        4'd4: begin // OP_LD second part
+        STP_LD_WB: begin // OP_LD second part
             was_op_ld <= 0;
-            stp <= 2;
+            stp <= STP_EXECUTE;
         end
 
-        4'd5: begin // jump / call / ret second part, waiting for next instruction
-            is_stall <= 0;
-            stp <= 2;
+        STP_BRANCH: begin // jump / call / ret second part, waiting for next instruction
+            is_bubble <= 0;
+            stp <= STP_EXECUTE;
         end
         
-        4'd6: begin // OP_IO_WRITE: wait for Uart to finish
+        STP_UART_WRITE: begin // OP_IO_WRITE: wait for Uart to finish
             if (!utx_bsy) begin
                 utx_go <= 0; // acknowledge that the write is done
                 pc <= pc + 1;
-                stp <= 2;
+                stp <= STP_EXECUTE;
             end
         end
         
-        4'd7: begin // OP_IO_READ: wait for Uart to finish
+        STP_UART_READ: begin // OP_IO_READ: wait for Uart to finish
            if (urx_dr) begin // if data ready
                 if (urx_reg_hilo) begin
                     urx_reg_dat[15:8] <= urx_dat; // write the high byte
@@ -288,13 +302,13 @@ always @(posedge clk) begin
                 end
                 urx_go <= 0; // acknowledge the ready data has been read
                 urx_wb <= 1;
-                stp <= 8;
+                stp <= STP_UART_READ_WB;
             end
         end
         
-        4'd8: begin // one cycle to write back the register
+        STP_UART_READ_WB: begin // one cycle to write back the register
             pc <= pc + 1;
-            stp <= 2;
+            stp <= STP_EXECUTE;
         end
         
         endcase
