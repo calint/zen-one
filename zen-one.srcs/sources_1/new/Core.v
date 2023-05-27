@@ -156,7 +156,7 @@ wire regs_we =
 wire [REGS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
     was_do_op && is_ld ? ram_doa :
-    is_alu_op ? alu_result :
+    is_alu_op ? alu_result : // note. check 'is_alu_op' after 'is_ld' because both might be true with 'is_ld' having precedence
     urx_reg_dat;
 
 wire [REGS_WIDTH-1:0] regb_dat;

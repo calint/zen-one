@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="220.800 ns"></ZoomStartTime>
-      <ZoomEndTime time="526.401 ns"></ZoomEndTime>
-      <Cursor1Time time="325.000 ns"></Cursor1Time>
+      <ZoomStartTime time="323.934 ns"></ZoomStartTime>
+      <ZoomEndTime time="412.135 ns"></ZoomEndTime>
+      <Cursor1Time time="405.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="157"></NameColumnWidth>
-      <ValueColumnWidth column_width="120"></ValueColumnWidth>
+      <ValueColumnWidth column_width="116"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="9" />
+   <WVObjectSize size="13" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -44,6 +44,22 @@
    <wvobject type="logic" fp_name="/TB_Top/top/core/is_bubble">
       <obj_property name="ElementShortName">is_bubble</obj_property>
       <obj_property name="ObjectShortName">is_bubble</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/is_alu_op">
+      <obj_property name="ElementShortName">is_alu_op</obj_property>
+      <obj_property name="ObjectShortName">is_alu_op</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/is_jmp">
+      <obj_property name="ElementShortName">is_jmp</obj_property>
+      <obj_property name="ObjectShortName">is_jmp</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/is_ldi">
+      <obj_property name="ElementShortName">is_ldi</obj_property>
+      <obj_property name="ObjectShortName">is_ldi</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/is_ld">
+      <obj_property name="ElementShortName">is_ld</obj_property>
+      <obj_property name="ObjectShortName">is_ld</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/TB_Top/top/core/stp">
       <obj_property name="ElementShortName">stp[3:0]</obj_property>
