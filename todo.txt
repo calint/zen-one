@@ -1,4 +1,4 @@
-[ ] zasm: example 'alias r1 strptr ; ld strptr data r2'
+[ ] zasm: example 'alias r1 strptr ; ld strptr r2'
 [ ] zasm: example 'string roome "u r in roome"'
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------
