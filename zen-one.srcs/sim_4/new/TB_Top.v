@@ -91,18 +91,18 @@ initial begin
     if (top.core.pc == 17) $display("case 8 passed"); else $display("case 8 FAILED");
     #clk_tk
     #clk_tk
-    if (!top.core.zn_zf && top.core.zn_nf) $display("case 7.1 passed"); else $display("case 7.1 FAILED");
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 9 passed"); else $display("case 9 FAILED");
 
     // jmp lbl1            # pc -> 0x0020
     // 015F // [11] 13:5
     // note. pc is one instruction ahead
-    if (top.core.pc == 12) $display("case 9 passed"); else $display("case 9 FAILED");
+    if (top.core.pc == 12) $display("case 10 passed"); else $display("case 10 FAILED");
 
     #clk_tk
     #clk_tk
     // @ 0x0020 lbl1:
     // note. pc is one instruction ahead
-    if (top.core.pc == 33) $display("case 10 passed"); else $display("case 10 FAILED");
+    if (top.core.pc == 33) $display("case 11 passed"); else $display("case 11 FAILED");
     
     $finish;
 end
