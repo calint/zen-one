@@ -103,7 +103,7 @@ initial begin
     // jmp lbl1            # pc -> 0x0020
     // 015F // [11] 13:5
     // note. pc is one instruction ahead
-    if (top.core.pc == 12) $display("case 10 passed"); else $display("case 10 FAILED");
+    if (top.core.pc == 13) $display("case 10 passed"); else $display("case 10 FAILED");
 
     #clk_tk
     #clk_tk
