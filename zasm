@@ -267,6 +267,9 @@ class Toc {
       // align at 16 bytes
       if ((pc & 0xf) != 0) {
         int pc_nxt = (pc & 0xfff0) + 0x10;
+        if (pc_nxt > 0xffff)
+        throw new Exception(
+          tk.sourcePos() + ": function '" + name + "' cannot be located at '" + pc_nxt + "' because it would be out-of-range of '" + 0xfff0 + "'");
         fwdPcTo(tk, pc_nxt, true);
       }
     }
@@ -453,7 +456,7 @@ class StmtFwdTo extends Statement {
   }
 
   public void compile(Toc toc) throws Throwable {
-    int pc_nxt = Statement.parseImm16(addr);
+    int pc_nxt = Statement.parseUnsignedImm16(addr);
     toc.fwdPcTo(addr, pc_nxt, false);
   }
 
@@ -1130,6 +1133,28 @@ class Statement {
                 + ") does not fit in 16 bits. max value is "
                 + ((1 << 16) - 1));
       return (short) i;
+    } catch (NumberFormatException e) {
+      throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
+    }
+  }
+
+  public static int parseUnsignedImm16(Token tk) throws Throwable {
+    try {
+      int i;
+      if (tk.id().startsWith("0b")) {
+        i = Integer.parseInt(tk.id().substring(2), 2);
+      } else {
+        i = Integer.decode(tk.id()).intValue();
+      }
+      if (i < 0 || i > 0xffff)
+        throw new Exception(
+            tk.sourcePos()
+                + ": unsigned 16 bit value '"
+                + tk.id()
+                + "' ("
+                + i
+                + ") is not within range of 0x0000 and 0xffff");
+      return i;
     } catch (NumberFormatException e) {
       throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
     }
