@@ -11,16 +11,18 @@ FFFF // [3] 5:5
 31C3 // [4] 6:5
 //     add r2 r3           # r3+=r1 == 0
 3203 // [5] 7:5
-//     ifp call err         # if(r3>0) jmp
-FFF8 // [6] 8:5
-//     ifn call err         # if(r3<0) jmp
-FFFA // [7] 9:5
+//     ifz ledi 0b0010     # if(r3==0)     
+2F31 // [6] 8:5
+//     ifp call err        # if(r3>0)
+FFF8 // [7] 9:5
+//     ifn call err        # if(r3<0)
+FFFA // [8] 10:5
 // 
 // done:
 //     ledi 0b0001
-1F33 // [8] 12:5
+1F33 // [9] 13:5
 //     jmp done
-FFFF // [9] 13:5
+FFFF // [10] 14:5
 // 
 // 
 // @ 0xfff0 
@@ -65533,12 +65535,11 @@ FFFF // [9] 13:5
 0000
 0000
 0000
-0000
 // err: func
 //     loop:
 //         ledi 0b1111
-FF33 // [65520] 18:9
+FF33 // [65520] 19:9
 //         jmp loop
-FFFF // [65521] 19:9
+FFFF // [65521] 20:9
 // endfunc
 

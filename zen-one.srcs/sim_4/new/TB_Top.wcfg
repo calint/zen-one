@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="309,999 ps"></ZoomStartTime>
-      <ZoomEndTime time="310,004 ps"></ZoomEndTime>
-      <Cursor1Time time="310,000 ps"></Cursor1Time>
+      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
+      <ZoomEndTime time="204.356 ns"></ZoomEndTime>
+      <Cursor1Time time="310.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="157"></NameColumnWidth>
-      <ValueColumnWidth column_width="132"></ValueColumnWidth>
+      <ValueColumnWidth column_width="128"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="6" />
+   <WVObjectSize size="7" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -52,5 +52,9 @@
          <obj_property name="ElementShortName">zn_nf</obj_property>
          <obj_property name="ObjectShortName">zn_nf</obj_property>
       </wvobject>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_Top/top/led">
+      <obj_property name="ElementShortName">led[3:0]</obj_property>
+      <obj_property name="ObjectShortName">led[3:0]</obj_property>
    </wvobject>
 </wave_config>

@@ -5,8 +5,9 @@
     ldi 0xffff r2       # r2=0xffff
     cp r1 r3            # r3=r1 == 0x0001
     add r2 r3           # r3+=r1 == 0
-    ifp call err         # if(r3>0) jmp
-    ifn call err         # if(r3<0) jmp
+    ifz ledi 0b0010     # if(r3==0)     
+    ifp call err        # if(r3>0)
+    ifn call err        # if(r3<0)
 
 done:
     ledi 0b0001

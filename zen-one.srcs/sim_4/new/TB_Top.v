@@ -37,7 +37,7 @@ initial begin
     #clk_tk;
     if (top.core.regs.mem[1] == 1) $display("case 1 passed"); else $display("case 1 FAILED");
        
-    //     ldi 0xffff r2       # r2=0xffff
+    // ldi 0xffff r2       # r2=0xffff
     // 2033 // [2] 5:5
     // FFFF // [3] 5:5 
     #clk_tk;
@@ -55,17 +55,27 @@ initial begin
     if (top.core.regs.mem[3] == 0) $display("case 4 passed"); else $display("case 4 FAILED");
     if (top.core.zn_zf && !top.core.zn_nf) $display("case 5 passed"); else $display("case 5 FAILED");
 
-    // ifp call err         # if(r3>0) jmp
-    // FFF8 // [6] 8:5
+    // zn=10
+    // r0 = 0x0000
+    // r1 = 0x0001
+    // r2 = 0xffff
+    // r3 = 0x0000
+    
+    // ifz ledi 0b0010     # if(r3==0)     
+    // 2F31 // [6] 8:5
     #clk_tk;
+    if (top.led == 3'b0010) $display("case 6 passed"); else $display("case 6 FAILED");
+
+    // ifp call err         # if(r3>0) ; branch not taken
+    // FFF8 // [7] 8:5
     #clk_tk;
     
-    // ifn call err         # if(r3<0) jmp
-    // FFFA // [7] 9:5
-    #clk_tk;
+    // ifn call err         # if(r3<0) ; branch not taken
+    // FFFA // [8] 9:5
     #clk_tk;
 
-    if (top.core.pc == 8) $display("case 6 passed"); else $display("case 6 FAILED");
+    // pc is one instruction ahead
+    if (top.core.pc == 10) $display("case 7 passed"); else $display("case 7 FAILED");
 
     $finish;
 end
