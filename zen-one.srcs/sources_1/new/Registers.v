@@ -9,13 +9,13 @@ module Registers #(
     input wire clk,
     input wire [ADDR_WIDTH-1:0] ra1, // register address 1
     input wire [ADDR_WIDTH-1:0] ra2, // register address 2
-    input wire [WIDTH-1:0] wd, // data to write to register 'ra2' when 'we' is enabled
-    input wire we, // enables write 'wd' to address 'ra2'
-    output wire [WIDTH-1:0] rd1, // register data 1
-    output wire [WIDTH-1:0] rd2, // register data 2
-    input wire [ADDR_WIDTH-1:0] rb,
-    input wire [WIDTH-1:0] wdb,
-    input wire web
+    input wire [WIDTH-1:0] wd2, // data to write to register 'ra2' when 'we2' is enabled
+    input wire we2, // enables write 'wd2' to address 'ra2'
+    output wire [WIDTH-1:0] rd1, // value of register 'ra1'
+    output wire [WIDTH-1:0] rd2, // value of register 'ra2'
+    input wire [ADDR_WIDTH-1:0] ra3, // register address 3
+    input wire [WIDTH-1:0] wd3, // data to write to register 'ra3' when 'we3' is enabled
+    input wire we3
 );
 
 reg signed [WIDTH-1:0] mem [0:2**ADDR_WIDTH-1];
@@ -38,10 +38,10 @@ always @(posedge clk) begin
     // write first the 'wdb' which is from a 'ld'
     // then the 'wd' which might overwrite the 'wdb'
     //   example: ld r1 r7 ; add r7 r7
-    if (web) 
-        mem[rb] <= wdb;
-    if (we)
-        mem[ra2] <= wd;
+    if (we3) 
+        mem[ra3] <= wd3;
+    if (we2)
+        mem[ra2] <= wd2;
 end
 
 endmodule
