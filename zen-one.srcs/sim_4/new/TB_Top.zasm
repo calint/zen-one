@@ -31,7 +31,8 @@ endfunc
 
 @ 0x0040 lbl2:
     ifz ldi 0x0002 r6   # zn==01 ; not executed
-
+    ld r1 r7            # r7=ram[1] == 0xffff
+    add r7 r7           # 0xffff + 0xffff = 0xfffe
 done:
     ledi 0b0001
     jmp done

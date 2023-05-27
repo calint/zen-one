@@ -129,10 +129,8 @@ initial begin
     // ifn ld r1 r4        # zn==01 ; executed r4=ram[0x0001] == 0xffff
     // 4152 // [34] 22:5
     #clk_tk
-    // check that previous 'ld' did not store
+    // check that previous 'ld' did not load register
     if (top.core.regs.mem[4] == 0) $display("case 13 passed"); else $display("case 13 FAILED");
-    #clk_tk
-    if (top.core.regs.mem[4] == 0'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
     
     // zn=01
     // r0 = 0x0000
@@ -144,6 +142,8 @@ initial begin
     // call bar
     // 003B // [35] 23:5
     #clk_tk
+    // check that previous 'ld' did load register
+    if (top.core.regs.mem[4] == 0'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
     #clk_tk
 
     // @ 0x0030 bar: func
@@ -155,11 +155,10 @@ initial begin
     // ld r1 r5  ret       # r5=ram[0x0001] == 0xffff
     // 5157 // [48] 26:5 
     #clk_tk
-    #clk_tk
+    #clk_tk // extra cycle for the bubble from 'ret'
     if (top.core.pc == 37) $display("case 17 passed"); else $display("case 17 FAILED");
     // check that zn flags restore after returning from call. zn==01
     if (!top.core.zn_zf && top.core.zn_nf) $display("case 18 passed"); else $display("case 18 FAILED");
-    if (top.core.regs.mem[5] == 0'hffff) $display("case 19 passed"); else $display("case 19 FAILED");
 
     // zn=01
     // r0 = 0x0000
@@ -172,6 +171,8 @@ initial begin
     // jmp lbl2
     // 01CF // [36] 24:5
     #clk_tk
+    // note. check that the 'ld' run in previous instruction has loaded the register
+    if (top.core.regs.mem[5] == 0'hffff) $display("case 19 passed"); else $display("case 19 FAILED");
     #clk_tk
     // @ 0x0040  lbl2:
     // note. pc is one instruction ahead
@@ -184,6 +185,17 @@ initial begin
     if (top.core.regs.mem[6] != 2) $display("case 21 passed"); else $display("case 21 FAILED");
     // bug check. if the data part of the 'ldi' is interpreted as an instruction then zn becomes 10 because r0+=r0 == 0
     if (!top.core.zn_zf && top.core.zn_nf) $display("case 22 passed"); else $display("case 22 FAILED");
+    
+    // ram[1] = 0xffff
+    
+    // ld r1 r7            # r7=ram[1] == 0xffff
+    // 7153 // [66] 34:5
+    #clk_tk
+    
+    // add r7 r7           # 0xffff + 0xffff = 0xfffe
+    // 7703 // [67] 35:5
+    #clk_tk
+    if (top.core.regs.mem[7] == 16'hfffe) $display("case 23 passed"); else $display("case 23 FAILED");
     
     $finish;
 end

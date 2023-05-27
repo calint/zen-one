@@ -56,20 +56,20 @@ initial begin
     if (top.ram.ram[16'h1234] == 16'hffff) $display("case 5 passed"); else $display("case 5 FAILED");
        
     #clk_tk; // [8] 6253: ld r2 r6          # r6=ram[0xabcd] == 0x1234
-    #clk_tk; // ld r2 r6 completed
-    if (top.core.regs.mem[6] == 16'h1234) $display("case 6 passed"); else $display("case 6 FAILED");
     #clk_tk; // [9] 4153: ld r1 r4          # r4=ram[0x1234] == 0xffff
-    #clk_tk; // ld r1 r4 completed
-    if (top.core.regs.mem[4] == 16'hffff) $display("case 7 passed"); else $display("case 7 FAILED");
+    // check that previous 'ld r2 r6' has written
+    if (top.core.regs.mem[6] == 16'h1234) $display("case 6 passed"); else $display("case 6 FAILED");
     
     #clk_tk; // [10] 1373: st r3 r1          # ram[0xffff]=0x1234
+    // check that previous 'ld r1 r4' has written
+    if (top.core.regs.mem[4] == 16'hffff) $display("case 7 passed"); else $display("case 7 FAILED");
     if (top.ram.ram[16'hffff] == 16'h1234) $display("case 8 passed"); else $display("case 8 FAILED");
 
     #clk_tk; // [11] 5353: ld r3 r5          # r5=ram[0xffff] == 0x1234
-    #clk_tk;
-    if (top.core.regs.mem[5] == 16'h1234) $display("case 9 passed"); else $display("case 9 FAILED");
     
     #clk_tk; // [12] 4013: addi 1 r4         # r4 == 0
+    // check that previous 'ld r2 r5' has written
+    if (top.core.regs.mem[5] == 16'h1234) $display("case 9 passed"); else $display("case 9 FAILED");
     if (top.core.regs.mem[4] == 16'h0000) $display("case 10 passed"); else $display("case 10 FAILED");
     if (top.core.zn_zf && !top.core.zn_nf) $display("case 11 passed"); else $display("case 11 FAILED");
 

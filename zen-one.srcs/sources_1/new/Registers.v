@@ -12,7 +12,10 @@ module Registers #(
     input wire [WIDTH-1:0] wd, // data to write to register 'ra2' when 'we' is enabled
     input wire we, // enables write 'wd' to address 'ra2'
     output wire [WIDTH-1:0] rd1, // register data 1
-    output wire [WIDTH-1:0] rd2 // register data 2
+    output wire [WIDTH-1:0] rd2, // register data 2
+    input wire [ADDR_WIDTH-1:0] rb,
+    input wire [WIDTH-1:0] wdb,
+    input wire web
 );
 
 reg signed [WIDTH-1:0] mem [0:2**ADDR_WIDTH-1];
@@ -32,6 +35,11 @@ always @(posedge clk) begin
         $display("%0t: clk+: Registers (ra1,ra2,rd1,rd2)=(%0h,%0h,%0h,%0h)", $time, ra1, ra2, rd1, rd2);
     `endif
 
+    // write first the 'wdb' which is from a 'ld'
+    // then the 'wd' which might overwrite the 'wdb'
+    //   example: ld r1 r7 ; add r7 r7
+    if (web) 
+        mem[rb] <= wdb;
     if (we)
         mem[ra2] <= wd;
 end

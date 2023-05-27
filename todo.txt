@@ -1,5 +1,5 @@
-[ ] Registers with two write ports to make 'ld' to one cycle
-[ ]   hazard unit to propagate register value
+[x] Registers with two write ports to make 'ld' to one cycle
+[x]   hazard unit to propagate register value
 [ ] parameterize modules
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------

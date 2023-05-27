@@ -87,7 +87,6 @@ wire [3:0] instr_op = instr[7:4];
 wire [3:0] rega = instr[11:8];
 wire [3:0] regb =
     was_do_op && is_ldi ? ldi_reg :
-    was_do_op && is_ld ? ld_reg :
     urx_wb ? urx_reg : 
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
@@ -104,7 +103,7 @@ wire zn_zf;
 wire zn_nf;
 
 // enabled if it is instruction and should execute
-wire is_do_op = !is_ld && !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -127,7 +126,6 @@ wire cs_nf;
 //
 // value of register 'rega'
 wire [REGS_WIDTH-1:0] rega_dat;
-
 //
 // ALU
 //
@@ -135,9 +133,17 @@ wire is_alu_op = is_do_op && !is_jmp && !cs_call && (!instr_op[0] || instr_op ==
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
     instr_op[3:1]; // same as upper 3 bits of op
+
 wire [REGS_WIDTH-1:0] alu_operand_a =
-    instr_op == OP_SHF || instr_op == OP_ADDI ? (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
+    instr_op == OP_SHF || instr_op == OP_ADDI ? 
+        (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
+    is_ld && ld_reg == rega ? regs_wdb : // if 'ld' is writing the refered register (hazard resolution)
     rega_dat; // otherwise regs[a]
+
+wire [REGS_WIDTH-1:0] alu_operand_b =
+    is_ld && ld_reg == regb ? regs_wdb : // if 'ld' is writing the refered register (hazard resolution)
+    regb_dat;
+    
 // wire zero flag to Zn
 wire alu_zf;
 // wire negative flag to Zn
@@ -150,17 +156,20 @@ wire [REGS_WIDTH-1:0] alu_result;
 //
 wire regs_we = 
     is_alu_op ||
-    was_do_op && (is_ldi || is_ld) || 
+    was_do_op && is_ldi || 
     urx_wb; // if uart wants to write recieved data
 
 wire [REGS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
-    was_do_op && is_ld ? ram_doa :
-    // note. check 'is_alu_op' after 'is_ld' because both might be true when
-    //       the pipeline is in stall during the second part of 'ld'
     is_alu_op ? alu_result :
     urx_reg_dat;
 
+// the second port for 'ld' to write data overlapping execution
+//   of current instruction
+wire regs_web = was_do_op && is_ld;
+wire [15:0] regs_wdb = ram_doa;
+wire [3:0] regs_rb = ld_reg;
+    
 wire [REGS_WIDTH-1:0] regb_dat;
 
 wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
@@ -169,10 +178,14 @@ wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 // RAM
 //
 // note. don't write enable if running second cycle of 'ld'
-assign ram_wea = is_op_st && !is_ld;
-assign ram_addra = rega_dat;
+assign ram_wea = is_op_st;
+assign ram_addra = 
+    is_ld && ld_reg == rega ? regs_wdb : // if 'ld' is writing the refered register (hazard resolution)
+    rega_dat;
 // data that will be written if 'ram_wea'
-assign ram_dia = regb_dat;
+assign ram_dia = 
+    is_ld && ld_reg == regb ? regs_wdb : // if 'ld' is writing the refered register (hazard resolution)
+    regb_dat;
 
 //
 // Zn
@@ -222,6 +235,7 @@ always @(posedge clk) begin
     
         urx_wb <= 0; // disable writing 'urx_reg_dat'
         is_bubble <= 0; // disable flag if set in previous instruction
+        is_ld <= 0;
         
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
@@ -301,10 +315,6 @@ always @(posedge clk) begin
                         OP_LD: begin
                             is_ld <= 1;
                             ld_reg <= instr[15:12];
-                            if (!cs_ret) begin
-                                pc <= pc; // overwrite pc to stall
-                            end
-                            stp <= STP_LD_WB;
                         end
                         
                         endcase
@@ -322,11 +332,6 @@ always @(posedge clk) begin
 
         STP_LDI: begin // OP_LDI second part
             is_ldi <= 0;
-            stp <= STP_EXECUTE;
-        end
-
-        STP_LD_WB: begin // OP_LD second part
-            is_ld <= 0;
             stp <= STP_EXECUTE;
         end
 
@@ -375,7 +380,10 @@ Registers #(
     .wd(regs_wd),
     .we(regs_we),
     .rd1(rega_dat),
-    .rd2(regb_dat)
+    .rd2(regb_dat),
+    .web(regs_web),
+    .wdb(regs_wdb),
+    .rb(regs_rb)
 );
 
 ALU #(
@@ -384,7 +392,7 @@ ALU #(
 //    .clk(clk),
     .op(alu_op),
     .a(alu_operand_a),
-    .b(regb_dat),
+    .b(alu_operand_b),
     .result(alu_result),
     .zf(alu_zf),
     .nf(alu_nf)
