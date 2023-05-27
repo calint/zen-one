@@ -10,14 +10,17 @@
     ifn call err        # if(r3<0)
     cp r2 r3            # r3=r2 == 0xffff
     ifn call foo        # if(r3<0)
+    jmp lbl1            # pc -> 0x0020
+
+@ 0x0010 foo: func
+    ledi 0b0010  ret    # 
+endfunc
+
+@ 0x0020 lbl1:
 
 done:
     ledi 0b0001
     jmp done
-
-foo: func
-    ledi 0b0010  ret    # 
-endfunc
 
 @ 0xfff0 err: func
     loop:
