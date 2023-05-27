@@ -72,10 +72,10 @@ reg was_do_op;
 // load (ld)
 //
 // enabled when previous instruciton was 'ld'
-// the load instruction writes to register during the second cycle
+//  the load instruction writes to register during the second cycle
 reg is_ld;
 // the register to which the 'ld' instruction wants to write to
-// set in the first cycle of the instruction
+//  set in the first cycle of the instruction
 reg [3:0] ld_reg;
 
 // the instruction
@@ -255,7 +255,7 @@ always @(posedge clk) begin
             
         end else begin
             // if reading or writing uart stay at same instruction until done.
-            // note. instruction in context is the next instruction in the pipeline
+            //  note. instruction in context is the next instruction in the pipeline
             if (stp != STP_UART_WRITE && 
                 stp != STP_UART_READ && 
                 stp != STP_UART_READ_WB)
@@ -331,7 +331,7 @@ always @(posedge clk) begin
                 end // if (is_jmp)
             end else begin // else of if (is_do_op)
                 // if 'ldi' enable 'is_ldi' so that data part of the 
-                // 'ldi' does not get interpreted as an instruction
+                //  'ldi' does not get interpreted as an instruction
                 if (instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
                     is_ldi <= 1;
                     stp <= STP_LDI;
