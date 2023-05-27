@@ -84,13 +84,14 @@ initial begin
     #clk_tk
     #clk_tk
     
-    // foo: func
-    //     ledi 0b0010  ret    # 
+    // @ 0x0010 foo: func
+    // ledi 0b0010  ret    # 
     // 2F37 // [16] 19:5
     // note. pc is one instruction ahead
     if (top.core.pc == 17) $display("case 8 passed"); else $display("case 8 FAILED");
     #clk_tk
     #clk_tk
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 7.1 passed"); else $display("case 7.1 FAILED");
 
     // jmp lbl1            # pc -> 0x0020
     // 015F // [11] 13:5
