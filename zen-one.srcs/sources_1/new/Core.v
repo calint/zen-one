@@ -104,7 +104,7 @@ wire zn_zf;
 wire zn_nf;
 
 // enabled if it is instruction and should execute
-wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+wire is_do_op = !is_ld && !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -114,8 +114,7 @@ wire cs_call = is_do_op && instr_c && !instr_r;
 // true if instruction is also a return from current call
 wire cs_ret = is_do_op && !instr_c && instr_r;
 // true if state of 'Calls' should change
-// note. not enabled during the second part of 'ld'
-wire cs_en = !is_ld && (cs_call || cs_ret);
+wire cs_en = cs_call || cs_ret;
 // program counter of the return address from current call
 wire [RAM_ADDR_WIDTH-1:0] cs_pc_out;
 // wire to Zn zero flag
@@ -167,7 +166,7 @@ wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 //
 // RAM
 //
-// don't write enable if running second cycle of 'ld'
+// note. don't write enable if running second cycle of 'ld'
 assign ram_wea = is_op_st && !is_ld;
 assign ram_addra = rega_dat;
 // data that will be written if 'ram_wea'
@@ -177,8 +176,7 @@ assign ram_dia = regb_dat;
 // Zn
 //
 // enabled if Zn will change state.
-// note. don't enable during second part of 'ld' instruction
-wire zn_we = !is_ld && is_do_op && (is_alu_op || cs_call || cs_ret);
+wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
 // enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
 wire zn_sel = cs_ret;
 // enabled if flags should be cleared
