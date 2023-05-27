@@ -26,9 +26,16 @@ initial begin
     $display("RAM '%s'", RAM_FILE);
     #rst_dur
     rst = 0;
-    //#(clk_tk/2)
     
-    #clk_tk // [0] boot
+    // start the pipe-line
+    // note. first instruction runs twice and must be a single cycle
+    // ledi 0b1000         # start the pipe-line (runs twice)
+    // 8F33 // [0] 4:5
+    #clk_tk
+    
+    // ledi 0b1000         # start the pipe-line (runs twice)
+    // 8F33 // [0] 4:5    
+    #clk_tk
     
     // ldi 0x0001 r1       # r1=0x0001
     // 1033 // [0] 4:5

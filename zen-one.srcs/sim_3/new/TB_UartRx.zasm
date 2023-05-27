@@ -1,4 +1,6 @@
-loop:
-    rl r1
-    rh r1
+ledi 0b1000     # start the pipe-line (runs twice)
+
+loop:           
+    rl r1       # read lower 8 bits into r1
+    rh r1       # read upper 8 bits into r1
     jmp loop

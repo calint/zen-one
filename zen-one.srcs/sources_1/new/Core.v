@@ -186,14 +186,13 @@ wire zn_clr = cs_call;
 // Core
 // 
 reg [3:0] stp;
-localparam STP_START         = 1;
-localparam STP_EXECUTE       = 2;
-localparam STP_LDI           = 3;
-localparam STP_LD_WB         = 4;
-localparam STP_BRANCH        = 5;
-localparam STP_UART_WRITE    = 6;
-localparam STP_UART_READ     = 7;
-localparam STP_UART_READ_WB  = 8;
+localparam STP_EXECUTE       = 1;
+localparam STP_LDI           = 2;
+localparam STP_LD_WB         = 3;
+localparam STP_BRANCH        = 4;
+localparam STP_UART_WRITE    = 5;
+localparam STP_UART_READ     = 6;
+localparam STP_UART_READ_WB  = 7;
 
 always @(posedge clk) begin
     `ifdef DBG
@@ -202,7 +201,7 @@ always @(posedge clk) begin
     `endif
     if (rst) begin
         pc <= 0;
-        stp <= 1;
+        stp <= STP_EXECUTE;
         is_ldi <=0;
         ldi_reg <= 0;
         urx_reg <= 0;
@@ -220,7 +219,7 @@ always @(posedge clk) begin
     end else begin
     
         urx_wb <= 0; // disable writing 'urx_reg_dat'
-        is_bubble <=0; // disable flag if set in previous instruction
+        is_bubble <= 0; // disable flag if set in previous instruction
         
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
@@ -241,11 +240,6 @@ always @(posedge clk) begin
         end
                 
         case(stp)
-        
-        // the first instruction is ignored for the pipe-line to get started
-        STP_START: begin
-            stp <= STP_EXECUTE;
-        end
         
         STP_EXECUTE: begin
             // remember for the next cycle if this was an executed instruction

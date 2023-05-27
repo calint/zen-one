@@ -34,9 +34,9 @@ initial begin
     #rst_dur
     rst = 0;
     
-    #clk_tk; // [0] boot
+    #clk_tk; // start pipe-line
 
-    #(clk_tk*10);
+    #(clk_tk*10); // some cycles to enter the read uart
     
     // receive 0b0101_0101
     uart_rx = 1; // idle

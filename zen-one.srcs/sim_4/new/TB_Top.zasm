@@ -1,6 +1,8 @@
 # rom intended for test bench
 #  compile with 'zasm'
 #
+    ledi 0b1000         # start the pipe-line (runs twice)
+
     ldi 0x0001 r1       # r1=0x0001
     ldi 0xffff r2       # r2=0xffff
     cp r1 r3            # r3=r1 == 0x0001

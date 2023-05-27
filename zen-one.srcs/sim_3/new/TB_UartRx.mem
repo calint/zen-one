@@ -1,8 +1,11 @@
-// loop:
-//     rl r1
-1633 // [0] 2:5
-//     rh r1
-1E33 // [1] 3:5
+// ledi 0b1000     # start the pipe-line (runs twice)
+8F33 // [0] 1:1
+// 
+// loop:           
+//     rl r1       # read lower 8 bits into r1
+1633 // [1] 4:5
+//     rh r1       # read upper 8 bits into r1
+1E33 // [2] 5:5
 //     jmp loop
-FFEF // [2] 4:5
+FFEF // [3] 6:5
 

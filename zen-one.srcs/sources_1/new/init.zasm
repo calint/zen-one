@@ -1,10 +1,12 @@
-ldi 0x4548 r1  # 'EH'
+ledi 0b1000     # start the pipe-line (runs twice)
+
+ldi 0x4548 r1   # 'EH'
 wl r1
 wh r1
-ldi 0x4c4c r1  # 'LL'
+ldi 0x4c4c r1   # 'LL'
 wl r1
 wh r1
-ldi 0x204f r1  # ' O'
+ldi 0x204f r1   # ' O'
 wl r1
 wh r1
 
