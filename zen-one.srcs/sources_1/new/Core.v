@@ -313,7 +313,7 @@ always @(posedge clk) begin
             end else begin // else of if (is_do_op)
                 // if 'ldi' enable 'is_ldi' so that data part of the 
                 // 'ldi' does not get interpreted as an instruction
-                if (!cs_call && !is_jmp && instr_op == OP_LDI && rega == 0) begin
+                if (instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
                     is_ldi <= 1;
                     stp <= STP_LDI;
                 end
