@@ -28,6 +28,10 @@ wire [15:0] ram_dob;
 wire [15:0] ram_dia;
 wire ram_wea;
 
+assign led0_r = 1;
+assign led0_g = !btn;
+assign led0_b = 1;
+
 always @(posedge clk) begin
     `ifdef DBG
         $display("%0t: clk+: Top: %0d:%0h", $time, ram_addrb, ram_dob);
