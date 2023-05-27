@@ -1,5 +1,6 @@
 [ ] Registers with two write ports to make 'ld' to one cycle
 [ ]   hazard unit to propagate register value
+[ ] parameterize modules
 -----------------------------------------------------------------------------
 [x] UartRx
 [x]   test bench
