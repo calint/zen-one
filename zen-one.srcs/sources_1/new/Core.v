@@ -98,7 +98,7 @@ wire [11:0] imm12 = instr[15:4];
 reg is_bubble;
 
 //
-// Zen (part one)
+// Zn (part one)
 //
 
 // 'zero' flag

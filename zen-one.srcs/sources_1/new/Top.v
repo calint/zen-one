@@ -18,7 +18,8 @@ module Top #(
     output wire led0_b
 );
 
-localparam RAM_ADDR_WIDTH = 16; // 2**16 64K instructions
+localparam REGS_WIDTH = 16; // 16 is expected by test benches
+localparam RAM_ADDR_WIDTH = 16; // 2**16 64K instructions (minimum 12)
 
 wire clk = clk_in;
 wire [15:0] ram_addra;
@@ -49,7 +50,8 @@ wire urx_dr;
 wire core_urx_go;
 
 Core #(
-    .RAM_ADDR_WIDTH(RAM_ADDR_WIDTH)
+    .RAM_ADDR_WIDTH(RAM_ADDR_WIDTH),
+    .REGS_WIDTH(REGS_WIDTH)
 ) core (
     .rst(reset),
     .clk(clk),
@@ -71,7 +73,7 @@ Core #(
 RAM #(
     .DATA_FILE(RAM_FILE),
     .ADDR_WIDTH(RAM_ADDR_WIDTH),
-    .WIDTH(16)
+    .WIDTH(REGS_WIDTH)
 ) ram ( // 64K x 16b
     .clk(clk),
     .addra(ram_addra),
