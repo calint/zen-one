@@ -99,15 +99,19 @@ reg is_bubble;
 //
 // Zen (part one)
 //
+
+// 'zero' flag
 wire zn_zf;
+// 'negative' flag
 wire zn_nf;
 
-// enabled if it is instruction and should execute
+// enabled if instruction and should execute
 wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
 //
+
 // true if it is a call
 wire cs_call = is_do_op && instr_c && !instr_r;
 // true if instruction is also a return from current call
@@ -116,22 +120,25 @@ wire cs_ret = is_do_op && !instr_c && instr_r;
 wire cs_en = cs_call || cs_ret;
 // program counter of the return address from current call
 wire [RAM_ADDR_WIDTH-1:0] cs_pc_out;
-// wire to Zn zero flag
+// wired to Zn 'zero' flag
 wire cs_zf;
-// wire to Zn negative flag
+// wired to Zn 'negative' flag
 wire cs_nf;
 
 //
 // Registers (part one)
 //
-    
+
+// wired to 'Registers' output of 'rega' and 'regb'
 wire [REGS_WIDTH-1:0] rega_dat;
 wire [REGS_WIDTH-1:0] regb_dat;
 
 //
 // ALU
 //
-wire is_alu_op = is_do_op && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
+
+wire is_alu_op = is_do_op && !is_ldi && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
+
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
     instr_op[3:1]; // same as upper 3 bits of op
@@ -139,16 +146,18 @@ wire [2:0] alu_op =
 wire [REGS_WIDTH-1:0] alu_operand_a =
     instr_op == OP_SHF || instr_op == OP_ADDI ? 
         (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
-    is_ld && ld_reg == rega ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
+     // if 'ld' is loading the refered register (hazard resolution)
+    is_ld && ld_reg == rega ? ram_doa :
     rega_dat; // otherwise regs[a]
 
 wire [REGS_WIDTH-1:0] alu_operand_b =
-    is_ld && ld_reg == regb ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
+    // if 'ld' is loading the refered register (hazard resolution)
+    is_ld && ld_reg == regb ? ram_doa :
     regb_dat;
     
-// wire zero flag to Zn
+// wire 'zero' flag to Zn
 wire alu_zf;
-// wire negative flag to Zn
+// wire 'negative' flag to Zn
 wire alu_nf;
 // result of 'alu_operand_a' OP 'regb_dat'
 wire [REGS_WIDTH-1:0] alu_result;
@@ -156,29 +165,30 @@ wire [REGS_WIDTH-1:0] alu_result;
 //
 // Registers (part two)
 //
+
 wire regs_we = 
     is_alu_op ||
     was_do_op && is_ldi || 
     urx_wb; // if uart wants to write recieved data
 
 wire [REGS_WIDTH-1:0] regs_wd =
-    was_do_op && is_ldi ? instr :
     is_alu_op ? alu_result :
+    was_do_op && is_ldi ? instr :
     urx_reg_dat;
-
-wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
 // RAM
 //
 
-// data that will be written if 'ram_wea'
-assign ram_wea = is_op_st;
+// enable write if 'st'
+assign ram_wea = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
+// address to write
 assign ram_addra = 
     is_ld && ld_reg == rega ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
     rega_dat;
 
+// data to write
 assign ram_dia = 
     is_ld && ld_reg == regb ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
     regb_dat;
@@ -186,6 +196,7 @@ assign ram_dia =
 //
 // Zn
 //
+
 // enabled if Zn will change state.
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
 // enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
@@ -195,7 +206,8 @@ wire zn_clr = cs_call;
 
 //
 // Core
-// 
+//
+
 reg [3:0] stp;
 localparam STP_EXECUTE       = 1;
 localparam STP_LDI           = 2;

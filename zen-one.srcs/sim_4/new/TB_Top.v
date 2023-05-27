@@ -12,12 +12,14 @@ reg clk = 0;
 always #(clk_tk/2) clk = ~clk;
 
 reg rst = 1;
+reg uart_rx = 1;
 
 Top #(
     .RAM_FILE(RAM_FILE)
 ) top (
     .reset(rst),
-    .clk_in(clk)
+    .clk_in(clk),
+    .uart_rx(uart_rx)
 );
 
 integer i;

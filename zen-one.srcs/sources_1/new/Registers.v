@@ -35,8 +35,8 @@ always @(posedge clk) begin
         $display("%0t: clk+: Registers (ra1,ra2,rd1,rd2)=(%0h,%0h,%0h,%0h)", $time, ra1, ra2, rd1, rd2);
     `endif
 
-    // write first the 'wdb' which is from a 'ld'
-    // then the 'wd' which might overwrite the 'wdb'
+    // write first the 'wd3' which is from a 'ld'
+    // then the 'wd2' which might overwrite the 'wd3'
     //   example: ld r1 r7 ; add r7 r7
     if (we3) 
         mem[ra3] <= wd3;
