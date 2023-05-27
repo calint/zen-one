@@ -1,6 +1,7 @@
-[ ] parameterize modules
+[ ] zasm: example 'alias strptr is r1 ; alias word is r2 ; ld strptr word'
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------
+[x] parameterize modules
 [x] Registers with two write ports to make 'ld' to one cycle
 [x]   hazard unit to propagate register value
       => ad-hoc solution within the scope of this project
