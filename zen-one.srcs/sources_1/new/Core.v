@@ -124,8 +124,16 @@ wire cs_nf;
 //
 // Registers (part one)
 //
-// value of register 'rega'
+
+// the second port for 'ld' to write data overlapping execution
+//   of current instruction
+wire regs_web = was_do_op && is_ld;
+wire [15:0] regs_wdb = ram_doa;
+wire [3:0] regs_rb = ld_reg;
+    
 wire [REGS_WIDTH-1:0] rega_dat;
+wire [REGS_WIDTH-1:0] regb_dat;
+
 //
 // ALU
 //
@@ -164,20 +172,11 @@ wire [REGS_WIDTH-1:0] regs_wd =
     is_alu_op ? alu_result :
     urx_reg_dat;
 
-// the second port for 'ld' to write data overlapping execution
-//   of current instruction
-wire regs_web = was_do_op && is_ld;
-wire [15:0] regs_wdb = ram_doa;
-wire [3:0] regs_rb = ld_reg;
-    
-wire [REGS_WIDTH-1:0] regb_dat;
-
 wire is_op_st = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 //
 // RAM
 //
-// note. don't write enable if running second cycle of 'ld'
 assign ram_wea = is_op_st;
 assign ram_addra = 
     is_ld && ld_reg == rega ? regs_wdb : // if 'ld' is writing the refered register (hazard resolution)

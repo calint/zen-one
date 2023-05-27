@@ -120,7 +120,7 @@ initial begin
     // st r1 r3            # ram[0x0001]=0xffff
     // 3173 // [32] 20:5
     #clk_tk
-    if (top.ram.ram[1] == 0'hffff) $display("case 12 passed"); else $display("case 12 FAILED");
+    if (top.ram.ram[1] == 16'hffff) $display("case 12 passed"); else $display("case 12 FAILED");
    
     // ifp ld r1 r4        # zn!=00 ; not executed
     // 4150 // [33] 21:5
@@ -143,7 +143,7 @@ initial begin
     // 003B // [35] 23:5
     #clk_tk
     // check that previous 'ld' did load register
-    if (top.core.regs.mem[4] == 0'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
+    if (top.core.regs.mem[4] == 16'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
     #clk_tk
 
     // @ 0x0030 bar: func
@@ -172,7 +172,7 @@ initial begin
     // 01CF // [36] 24:5
     #clk_tk
     // note. check that the 'ld' run in previous instruction has loaded the register
-    if (top.core.regs.mem[5] == 0'hffff) $display("case 19 passed"); else $display("case 19 FAILED");
+    if (top.core.regs.mem[5] == 16'hffff) $display("case 19 passed"); else $display("case 19 FAILED");
     #clk_tk
     // @ 0x0040  lbl2:
     // note. pc is one instruction ahead
@@ -196,6 +196,15 @@ initial begin
     // 7703 // [67] 35:5
     #clk_tk
     if (top.core.regs.mem[7] == 16'hfffe) $display("case 23 passed"); else $display("case 23 FAILED");
+    
+    // ld r1 r8            # r8=ram[1] == 0xffff
+    // 8153 // [68] 36:5
+    #clk_tk
+
+    // st r8 r1            # ram[0xffff]=1
+    // 1873 // [69] 37:5
+    #clk_tk
+    if (top.ram.ram[16'hffff] == 1) $display("case 24 passed"); else $display("case 24 FAILED");
     
     $finish;
 end
