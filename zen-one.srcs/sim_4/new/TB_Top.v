@@ -119,13 +119,20 @@ initial begin
     // 4150 // [33] 21:5
     #clk_tk
     
-    // ifn ld r1 r4        # zn!=00 ; not executed
+    // ifn ld r1 r4        # zn=01 ; executed
     // 4152 // [34] 22:5
     #clk_tk
     // check that previous 'ld' did not store
     if (top.core.regs.mem[4] == 0) $display("case 13 passed"); else $display("case 13 FAILED");
     #clk_tk
     if (top.core.regs.mem[4] == 0'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
+    
+    // zn=01
+    // r0 = 0x0000
+    // r1 = 0x0001
+    // r2 = 0xffff
+    // r3 = 0xffff
+    // r4 = 0xffff
          
     $finish;
 end
