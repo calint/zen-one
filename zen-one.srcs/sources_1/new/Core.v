@@ -154,9 +154,9 @@ wire regs_we =
     urx_wb; // if uart wants to write recieved data
 
 wire [REGS_WIDTH-1:0] regs_wd =
-    is_alu_op ? alu_result :
     was_do_op && is_ldi ? instr :
     was_do_op && is_ld ? ram_doa :
+    is_alu_op ? alu_result :
     urx_reg_dat;
 
 wire [REGS_WIDTH-1:0] regb_dat;

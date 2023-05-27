@@ -4,7 +4,7 @@
 
 module TB_UartRx;
 
-localparam ROM_FILE = "TB_UartRx.mem";
+localparam RAM_FILE = "TB_UartRx.mem";
 localparam clk_tk = 10; // clk_tk = 1_000_000_000 / CLK_FREQ;
 localparam rst_dur = 200; // 100+ns of power-on delay in Verilog simulation due to the under-the-hood assertion of Global Set/Reset signal.
 
@@ -16,7 +16,7 @@ reg rst = 1;
 reg uart_rx = 1;
 
 Top #(
-    .ROM_FILE(ROM_FILE),
+    .RAM_FILE(RAM_FILE),
     .CLK_FREQ(66_000_000),
     .BAUD_RATE(66_000_000>>1)
 ) top (
@@ -30,7 +30,7 @@ localparam UART_TICKS_PER_BIT = 2; // CLK_FREQ / BAUD_RATE
 integer i;
 
 initial begin
-    $display("ROM '%s'", ROM_FILE);
+    $display("RAM '%s'", RAM_FILE);
     #rst_dur
     rst = 0;
     

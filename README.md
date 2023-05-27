@@ -108,7 +108,7 @@ instruction executes according to:
 instructions with rc=10 return from call
 
 how-to with Vivado v2023.1:
- * to program device edit path to RAM in "zen-one.srcs/sources_1/new/Top.v"
+ * to program device edit path to RAM in "zen-one.srcs/sources_1/new/SoC.v"
  * connect fpga board Cmod S7 from digilent.com
  * run synthesis, run implementation, program device
  * find out which tty is on the usb connected to the card (i.e. /dev/ttyUSB1)

@@ -3,7 +3,7 @@
 //`define DBG
 
 module Top #(
-    parameter ROM_FILE = "ROM.mem",
+    parameter RAM_FILE = "ROM.mem",
     parameter CLK_FREQ = 66_000_000,
     parameter BAUD_RATE = 9600
 )(
@@ -63,7 +63,7 @@ Core core (
 );
 
 RAM #(
-    .DATA_FILE(ROM_FILE),
+    .DATA_FILE(RAM_FILE),
     .ADDR_WIDTH(RAM_ADDR_WIDTH),
     .WIDTH(16)
 ) ram ( // 64K x 16b
