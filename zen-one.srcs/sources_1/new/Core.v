@@ -2,14 +2,18 @@
 `default_nettype none
 //`define DBG
 
-module Core(
+module Core #(
+    parameter RAM_ADDR_WIDTH = 16, // (2**16) 64K
+    parameter REGS_WIDTH = 16, // minimum 16
+    parameter CALLS_ADDR_WIDTH = 6 // (2**6) 64
+)(
     input wire rst,
     input wire clk,
-    output reg [15:0] pc,
+    output reg [RAM_ADDR_WIDTH-1:0] pc,
     input wire [15:0] instr,
-    output wire [15:0] ram_addra,
-    input wire [15:0] ram_doa,
-    output wire [15:0] ram_dia,
+    output wire [RAM_ADDR_WIDTH-1:0] ram_addra,
+    input wire [REGS_WIDTH-1:0] ram_doa,
+    output wire [REGS_WIDTH-1:0] ram_dia,
     output wire ram_wea,
     output reg [3:0] led,
     output reg [7:0] utx_dat,
@@ -21,9 +25,6 @@ module Core(
 );
 
 localparam REGS_ADDR_WIDTH = 4; // (2**4) 16 registers (not changable since register address is encoded in instruction using 4 bits) 
-localparam REGS_WIDTH = 16; // 16 bit
-localparam CALLS_ADDR_WIDTH = 6; // (2**6) 64
-localparam RAM_ADDR_WIDTH = 16; // (2**16) 64K
 
 localparam OP_ADDI = 4'b0001; // add immediate signed 4 bits value to 'regb' where imm4>=0?++imm4:-imm4
 localparam OP_LDI  = 4'b0011; // load immediate 16 bits from next instruction
@@ -271,7 +272,7 @@ always @(posedge clk) begin
             if (is_do_op) begin
 
                 if (is_jmp) begin
-                    pc <= pc + {{(16-12){imm12[11]}},imm12} - 1; // -1 because pc is ahead by 1 instruction
+                    pc <= pc + {{(RAM_ADDR_WIDTH-12){imm12[11]}},imm12} - 1; // -1 because pc is ahead by 1 instruction
                     is_bubble <= 1;
                     stp <= STP_BRANCH;
 

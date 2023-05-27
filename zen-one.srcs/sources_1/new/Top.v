@@ -48,7 +48,9 @@ wire [7:0] core_urx_dat;
 wire urx_dr;
 wire core_urx_go;
 
-Core core (
+Core #(
+    .RAM_ADDR_WIDTH(RAM_ADDR_WIDTH)
+) core (
     .rst(reset),
     .clk(clk),
     .pc(ram_addrb),
