@@ -103,7 +103,30 @@ initial begin
     // @ 0x0020 lbl1:
     // note. pc is one instruction ahead
     if (top.core.pc == 33) $display("case 11 passed"); else $display("case 11 FAILED");
+
+    // zn=01
+    // r0 = 0x0000
+    // r1 = 0x0001
+    // r2 = 0xffff
+    // r3 = 0xffff
     
+    // st r1 r3            # ram[0x0001]=0xffff
+    // 3173 // [32] 20:5
+    #clk_tk
+    if (top.ram.ram[1] == 0'hffff) $display("case 12 passed"); else $display("case 12 FAILED");
+   
+    // ifp ld r1 r4        # zn!=00 ; not executed
+    // 4150 // [33] 21:5
+    #clk_tk
+    
+    // ifn ld r1 r4        # zn!=00 ; not executed
+    // 4152 // [34] 22:5
+    #clk_tk
+    // check that previous 'ld' did not store
+    if (top.core.regs.mem[4] == 0) $display("case 13 passed"); else $display("case 13 FAILED");
+    #clk_tk
+    if (top.core.regs.mem[4] == 0'hffff) $display("case 14 passed"); else $display("case 14 FAILED");
+         
     $finish;
 end
 
