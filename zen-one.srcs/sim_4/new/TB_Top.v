@@ -28,13 +28,13 @@ initial begin
     rst = 0;
     //#(clk_tk/2)
     
-    #clk_tk; // [0] boot
+    #clk_tk // [0] boot
     
     // ldi 0x0001 r1       # r1=0x0001
     // 1033 // [0] 4:5
     // 0001 // [1] 4:5
-    #clk_tk;
-    #clk_tk;
+    #clk_tk
+    #clk_tk
     if (top.core.regs.mem[1] == 1) $display("case 1 passed"); else $display("case 1 FAILED");
        
     // ldi 0xffff r2       # r2=0xffff
@@ -46,12 +46,12 @@ initial begin
 
     // cp r1 r3            # r3=r1 == 0x0001
     // 31C3 // [4] 6:5
-    #clk_tk;
+    #clk_tk
     if (top.core.regs.mem[3] == 1) $display("case 3 passed"); else $display("case 3 FAILED");
     
     // add r2 r3           # r3+=r1 == 0
     // 3203 // [5] 7:5
-    #clk_tk;
+    #clk_tk
     if (top.core.regs.mem[3] == 0) $display("case 4 passed"); else $display("case 4 FAILED");
     if (top.core.zn_zf && !top.core.zn_nf) $display("case 5 passed"); else $display("case 5 FAILED");
 
@@ -63,19 +63,37 @@ initial begin
     
     // ifz ledi 0b0010     # if(r3==0)     
     // 2F31 // [6] 8:5
-    #clk_tk;
+    #clk_tk
     if (top.led == 3'b0010) $display("case 6 passed"); else $display("case 6 FAILED");
 
     // ifp call err         # if(r3>0) ; branch not taken
     // FFF8 // [7] 8:5
-    #clk_tk;
+    #clk_tk
     
     // ifn call err         # if(r3<0) ; branch not taken
     // FFFA // [8] 9:5
-    #clk_tk;
+    #clk_tk
 
-    // pc is one instruction ahead
-    if (top.core.pc == 10) $display("case 7 passed"); else $display("case 7 FAILED");
+    // cp r2 r3            # r3=r2 == 0xffff
+    // 32C3 // [9] 11:5
+    #clk_tk
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 7 passed"); else $display("case 7 FAILED");
+    
+    // ifn call foo        # if(r3<0) ; branch taken
+    // 001A // [10] 12:5
+    #clk_tk
+    #clk_tk
+    
+    // foo: func
+    //     ledi 0b0010  ret    # 
+    // 2F37 // [16] 19:5
+    // note. pc is one instruction ahead
+    if (top.core.pc == 17) $display("case 8 passed"); else $display("case 8 FAILED");
+    #clk_tk
+    #clk_tk
+
+    // note. pc is one instruction ahead
+    if (top.core.pc == 12) $display("case 9 passed"); else $display("case 9 FAILED");
 
     $finish;
 end
