@@ -19,8 +19,15 @@ endfunc
 @ 0x0020 lbl1:          # zn=01
     st r1 r3            # ram[0x0001]=0xffff
     ifp ld r1 r4        # zn!=00 ; not executed
-    ifn ld r1 r4        # zn==01 ; executed
+    ifn ld r1 r4        # zn==01 ; executed r4=ram[0x0001] == 0xffff
+    call bar
+    jmp lbl2
 
+@ 0x0030 bar: func
+    ld r1 r5  ret       # r5=ram[0x0001] == 0xffff
+endfunc
+
+@ 0x0040 lbl2:
 
 done:
     ledi 0b0001

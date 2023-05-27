@@ -114,7 +114,8 @@ wire cs_call = is_do_op && instr_c && !instr_r;
 // true if instruction is also a return from current call
 wire cs_ret = is_do_op && !instr_c && instr_r;
 // true if state of 'Calls' should change
-wire cs_en = cs_call || cs_ret;
+// note. not enabled during the second part of 'ld'
+wire cs_en = !is_ld && (cs_call || cs_ret);
 // program counter of the return address from current call
 wire [RAM_ADDR_WIDTH-1:0] cs_pc_out;
 // wire to Zn zero flag
@@ -175,7 +176,9 @@ assign ram_dia = regb_dat;
 //
 // Zn
 //
-wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
+// enabled if Zn will change state.
+// note. don't enable during second part of 'ld' instruction
+wire zn_we = !is_ld && is_do_op && (is_alu_op || cs_call || cs_ret);
 // enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
 wire zn_sel = cs_ret;
 // enabled if flags should be cleared
@@ -219,6 +222,7 @@ always @(posedge clk) begin
     end else begin
     
         urx_wb <= 0; // disable writing 'urx_reg_dat'
+        is_bubble <=0; // disable flag if set in previous instruction
         
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);

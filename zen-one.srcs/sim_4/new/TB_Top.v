@@ -119,7 +119,7 @@ initial begin
     // 4150 // [33] 21:5
     #clk_tk
     
-    // ifn ld r1 r4        # zn==01 ; executed
+    // ifn ld r1 r4        # zn==01 ; executed r4=ram[0x0001] == 0xffff
     // 4152 // [34] 22:5
     #clk_tk
     // check that previous 'ld' did not store
@@ -133,7 +133,43 @@ initial begin
     // r2 = 0xffff
     // r3 = 0xffff
     // r4 = 0xffff
-         
+    
+    // call bar
+    // 003B // [35] 23:5
+    #clk_tk
+    #clk_tk
+
+    // @ 0x0030 bar: func
+    // note. pc is one instruction ahead
+    if (top.core.pc == 49) $display("case 15 passed"); else $display("case 15 FAILED");
+    // check that zn==00 when entering call
+    if (!top.core.zn_zf && !top.core.zn_nf) $display("case 16 passed"); else $display("case 16 FAILED");
+
+    // ld r1 r5  ret       # r5=ram[0x0001] == 0xffff
+    // 5157 // [48] 26:5 
+    #clk_tk
+    #clk_tk
+    if (top.core.pc == 37) $display("case 17 passed"); else $display("case 17 FAILED");
+    // check that zn flags restore after returning from call. zn==01
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 18 passed"); else $display("case 18 FAILED");
+    if (top.core.regs.mem[5] == 0'hffff) $display("case 19 passed"); else $display("case 19 FAILED");
+
+    // zn=01
+    // r0 = 0x0000
+    // r1 = 0x0001
+    // r2 = 0xffff
+    // r3 = 0xffff
+    // r4 = 0xffff
+    // r5 = 0xffff
+    
+    // jmp lbl2
+    // 01CF // [36] 24:5
+    #clk_tk
+    #clk_tk
+    // @ 0x0040  lbl2:
+    // note. pc is one instruction ahead
+    if (top.core.pc == 65) $display("case 20 passed"); else $display("case 20 FAILED");
+       
     $finish;
 end
 
