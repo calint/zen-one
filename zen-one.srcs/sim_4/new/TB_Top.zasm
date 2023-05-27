@@ -18,7 +18,7 @@
     ledi 0b0010  ret    # 
 endfunc
 
-@ 0x0020 lbl1:          # zn=01
+@ 0x0020 lbl1:          # zn==01
     st r1 r3            # ram[0x0001]=0xffff
     ifp ld r1 r4        # zn!=00 ; not executed
     ifn ld r1 r4        # zn==01 ; executed r4=ram[0x0001] == 0xffff
@@ -30,6 +30,7 @@ endfunc
 endfunc
 
 @ 0x0040 lbl2:
+    ifz ldi 0x0002 r6   # zn==01 ; not executed
 
 done:
     ledi 0b0001

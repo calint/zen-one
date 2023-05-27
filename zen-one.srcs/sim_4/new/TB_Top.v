@@ -176,7 +176,15 @@ initial begin
     // @ 0x0040  lbl2:
     // note. pc is one instruction ahead
     if (top.core.pc == 65) $display("case 20 passed"); else $display("case 20 FAILED");
-       
+    // ifz ldi 0x0002 r6   # zn==01 ; not executed
+    // 6031 // [64] 33:5
+    // 0002 // [65] 33:5
+    #clk_tk
+    #clk_tk
+    if (top.core.regs.mem[6] != 2) $display("case 21 passed"); else $display("case 21 FAILED");
+    // bug check. if the data part of the 'ldi' is interpreted as an instruction then zn becomes 10 because r0+=r0 == 0
+    if (!top.core.zn_zf && top.core.zn_nf) $display("case 22 passed"); else $display("case 22 FAILED");
+    
     $finish;
 end
 

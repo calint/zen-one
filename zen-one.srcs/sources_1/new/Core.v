@@ -94,7 +94,7 @@ wire [11:0] imm12 = instr[15:4];
 
 // enabled when the current instruction is not valid because of previous 
 // instruction being a 'jmp' or 'call'. in that case the next instruction
-// in the pipe-line should not be executed
+// in the pipeline should not be executed
 reg is_bubble;
 
 //
@@ -156,7 +156,9 @@ wire regs_we =
 wire [REGS_WIDTH-1:0] regs_wd =
     was_do_op && is_ldi ? instr :
     was_do_op && is_ld ? ram_doa :
-    is_alu_op ? alu_result : // note. check 'is_alu_op' after 'is_ld' because both might be true with 'is_ld' having precedence
+    // note. check 'is_alu_op' after 'is_ld' because both might be true when
+    //       the pipeline is in stall during the second part of 'ld'
+    is_alu_op ? alu_result :
     urx_reg_dat;
 
 wire [REGS_WIDTH-1:0] regb_dat;
@@ -224,13 +226,13 @@ always @(posedge clk) begin
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
-            // next instruction in the pipe should be ignored
+            // next instruction in the pipeline should be ignored
             is_bubble <= 1;
             stp <= STP_BRANCH;
             
         end else begin
             // if reading or writing uart stay at same instruction until done.
-            // note. instruction in context is the next instruction in the pipe-line
+            // note. instruction in context is the next instruction in the pipeline
             if (stp != STP_UART_WRITE && 
                 stp != STP_UART_READ && 
                 stp != STP_UART_READ_WB)
@@ -286,7 +288,7 @@ always @(posedge clk) begin
 
                         endcase
 
-                    end else begin
+                    end else begin // else of if (instr_op == OP_LDI && rega != 0)
                         
                         case(instr_op)
                         
@@ -306,14 +308,20 @@ always @(posedge clk) begin
                         end
                         
                         endcase
-                    end // instr_op == OP_LDI && rega != 0
-                end // is_jmp
-            end // !is_do_op
+                    end // if (instr_op == OP_LDI && rega != 0)
+                end // if (is_jmp)
+            end else begin // else of if (is_do_op)
+                // if 'ldi' enable 'is_ldi' so that data part of the 
+                // 'ldi' does not get interpreted as an instruction
+                if (!cs_call && !is_jmp && instr_op == OP_LDI && rega == 0) begin
+                    is_ldi <= 1;
+                    stp <= STP_LDI;
+                end
+            end // if (is_do_op)
         end // case
 
         STP_LDI: begin // OP_LDI second part
             is_ldi <= 0;
-            is_bubble <= 0;
             stp <= STP_EXECUTE;
         end
 
