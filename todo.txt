@@ -1,8 +1,9 @@
-[x] Registers with two write ports to make 'ld' to one cycle
-[x]   hazard unit to propagate register value
 [ ] parameterize modules
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------
+[x] Registers with two write ports to make 'ld' to one cycle
+[x]   hazard unit to propagate register value
+      => ad-hoc solution within the scope of this project
 [x] UartRx
 [x]   test bench
 [x] UartTx
