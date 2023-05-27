@@ -1,4 +1,4 @@
-[ ] zasm: example 'alias strptr is r1 ; alias word is r2 ; ld strptr word'
+[ ] zasm: example 'def strptr is r1 ; def data is r2 ; ld strptr data'
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------
 [x] parameterize modules
