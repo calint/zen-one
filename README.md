@@ -7,7 +7,9 @@ third try at fpga verilog vivado
 * ad-hoc pipe-line where the next instruction is fetched while current is executed
 * instead of ROM and RAM one dual-port RAM module
 * one cycle per instruction for ALU and store
-* two cycles for load immediate, load, call, jump and return
+* two cycles for load immediate, load
+* two cycles for call and jump if branch taken
+* two cycles for instructions that also return from current call
 * all core components run on positive edge of the clock
 
 ```
