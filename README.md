@@ -17,11 +17,11 @@ third try at fpga verilog vivado
                           
                        z   n - r   c      vintage 16 bit cpu
                        e   e   e   a 
-                       r   g   t   l      64K 16 bit instructions
-                       o   a   u   l      64K 16 bit data
-                           t   r          16  16 bit registers
-                           i   n          64  calls stack
-                           v              66  MHz
+                       r   g   t   l      64K 16 bit ram
+                       o   a   u   l      16  16 bit registers
+                           t   r          64  calls stack
+                           i   n          66  MHz
+                           v              
                            e
 
                      | 0 | 1 | 2 | 3 |   4 - 7   | 8-11 | 12-15|        
