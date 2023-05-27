@@ -3,7 +3,7 @@ experimental retro 16 bit cpu written in verilog xilinx vivado intended for fpga
 
 third try at fpga verilog vivado
 
-* same toy 16 bit retro cpu as 'zen-x' but re-written
+same toy 16 bit retro cpu as 'zen-x' but re-written
 * ad-hoc pipeline where the next instruction is fetched while current is executed
 * ad-hoc pipeline resolution for register being loaded and used in the same instruction
 * dual-port RAM instead of ROM and RAM
