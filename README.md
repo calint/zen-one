@@ -5,7 +5,7 @@ third try at fpga verilog vivado
 
 same toy 16 bit retro cpu as 'zen-x' but re-written
 * ad-hoc pipeline where the next instruction is fetched while current is executed
-* ad-hoc pipeline resolution for register being loading from RAM and used in the same instruction
+* ad-hoc pipeline resolution for register being loaded from RAM and used by current instruction
 * dual-port RAM instead of ROM and RAM
 * one cycle per instruction for ALU, load and store
 * two cycles for load immediate
