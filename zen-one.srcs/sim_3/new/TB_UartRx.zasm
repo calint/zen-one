@@ -1,7 +1,7 @@
 # ram intended for test bench
 #  compile with 'zasm'
 
-ledi 0b1000     # start the pipe-line (runs twice)
+ledi 0b1000     # a nop-like instruction that runs multiple times while the pipeline starts
 
 loop:           
     rl r1       # read lower 8 bits into r1
