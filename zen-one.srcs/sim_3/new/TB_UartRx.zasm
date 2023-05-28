@@ -1,3 +1,6 @@
+# ram intended for test bench
+#  compile with 'zasm'
+
 ledi 0b1000     # start the pipe-line (runs twice)
 
 loop:           

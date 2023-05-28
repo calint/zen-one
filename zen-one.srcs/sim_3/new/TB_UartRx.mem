@@ -1,11 +1,14 @@
+// # ram intended for test bench
+// #  compile with 'zasm'
+// 
 // ledi 0b1000     # start the pipe-line (runs twice)
-8F33 // [0] 1:1
+8F33 // [0] 4:1
 // 
 // loop:           
 //     rl r1       # read lower 8 bits into r1
-1633 // [1] 4:5
+1633 // [1] 7:5
 //     rh r1       # read upper 8 bits into r1
-1E33 // [2] 5:5
+1E33 // [2] 8:5
 //     jmp loop
-FFEF // [3] 6:5
+FFEF // [3] 9:5
 

@@ -1,3 +1,6 @@
+# ram intended for test bench
+#  compile with 'zasm'
+
 ledi 0b1000    # start the pipe-line (runs twice)
 
 ldi 0x4548 r1  # 'EH'

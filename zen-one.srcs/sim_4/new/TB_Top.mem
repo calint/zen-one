@@ -1,31 +1,31 @@
-// # rom intended for test bench
+// # ram intended for test bench
 // #  compile with 'zasm'
-// #
-//     ledi 0b1000         # start the pipe-line (runs twice)
-8F33 // [0] 4:5
 // 
-//     ldi 0x0001 r1       # r1=0x0001
-1033 // [1] 6:5
-0001 // [2] 6:5
-//     ldi 0xffff r2       # r2=0xffff
-2033 // [3] 7:5
-FFFF // [4] 7:5
-//     cp r1 r3            # r3=r1 == 0x0001
-31C3 // [5] 8:5
-//     add r2 r3           # r3+=r1 == 0
-3203 // [6] 9:5
-//     ifz ledi 0b0010     # if(r3==0)     
-2F31 // [7] 10:5
-//     ifp call err        # if(r3>0)
-FFF8 // [8] 11:5
-//     ifn call err        # if(r3<0)
-FFFA // [9] 12:5
-//     cp r2 r3            # r3=r2 == 0xffff
-32C3 // [10] 13:5
-//     ifn call foo        # if(r3<0)
-001A // [11] 14:5
-//     jmp lbl1            # pc -> 0x0020
-014F // [12] 15:5
+// ledi 0b1000         # start the pipe-line (runs twice)
+8F33 // [0] 4:1
+// 
+// ldi 0x0001 r1       # r1=0x0001
+1033 // [1] 6:1
+0001 // [2] 6:1
+// ldi 0xffff r2       # r2=0xffff
+2033 // [3] 7:1
+FFFF // [4] 7:1
+// cp r1 r3            # r3=r1 == 0x0001
+31C3 // [5] 8:1
+// add r2 r3           # r3+=r1 == 0
+3203 // [6] 9:1
+// ifz ledi 0b0010     # if(r3==0)     
+2F31 // [7] 10:1
+// ifp call err        # if(r3>0)
+FFF8 // [8] 11:1
+// ifn call err        # if(r3<0)
+FFFA // [9] 12:1
+// cp r2 r3            # r3=r2 == 0xffff
+32C3 // [10] 13:1
+// ifn call foo        # if(r3<0)
+001A // [11] 14:1
+// jmp lbl1            # pc -> 0x0020
+014F // [12] 15:1
 // 
 // @ 0x0010 
 0000
@@ -113,11 +113,12 @@ FFFA // [9] 12:5
 8153 // [70] 38:5
 //     st r9 r8            # ram[0]=0xffff
 8973 // [71] 39:5
+//     
 // done:
 //     ledi 0b0001
-1F33 // [72] 41:5
+1F33 // [72] 42:5
 //     jmp done
-FFFF // [73] 42:5
+FFFF // [73] 43:5
 // 
 // @ 0xfff0 
 0000
@@ -65569,8 +65570,8 @@ FFFF // [73] 42:5
 // err: func
 //     loop:
 //         ledi 0b1111
-FF33 // [65520] 46:9
+FF33 // [65520] 47:9
 //         jmp loop
-FFFF // [65521] 47:9
+FFFF // [65521] 48:9
 // endfunc
 
