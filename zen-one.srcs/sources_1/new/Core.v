@@ -48,6 +48,7 @@ localparam ALU_SHF = 3'b111; // shift immediate signed 4 bits value of 'regb' wh
 //
 // load immediate (ldi)
 //
+
 // enabled if in data part of the instruction
 reg is_ldi;
 // destination register saved from previous cycle
@@ -56,6 +57,7 @@ reg [3:0] ldi_reg;
 //
 // UartRx
 //
+
 // the register to write to
 reg [3:0] urx_reg;
 // previous data of the register
@@ -71,6 +73,7 @@ reg was_do_op;
 //
 // load (ld)
 //
+
 // enabled when previous instruciton was 'ld'
 //  the load instruction writes to register during the second cycle
 reg is_ld;
@@ -78,7 +81,10 @@ reg is_ld;
 //  set in the first cycle of the instruction
 reg [3:0] ld_reg;
 
-// the instruction
+//
+// instruction
+//
+
 wire instr_z = instr[0];
 wire instr_n = instr[1];
 wire instr_r = instr[2];
@@ -92,21 +98,21 @@ wire [3:0] regb =
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
 
+//
+// Zn (part one)
+//
+
+// current 'zero' flag
+wire zn_zf;
+// current 'negative' flag
+wire zn_nf;
+
 // enabled when the current instruction is not valid because of previous 
 // instruction being a 'jmp' or 'call'. in that case the next instruction
 // in the pipeline should not be executed
 reg is_bubble;
 
-//
-// Zn (part one)
-//
-
-// 'zero' flag
-wire zn_zf;
-// 'negative' flag
-wire zn_nf;
-
-// enabled if instruction and should execute
+// enabled if instruction should execute
 wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
@@ -160,18 +166,20 @@ wire [REGS_WIDTH-1:0] alu_operand_b =
 wire alu_zf;
 // wire 'negative' flag to Zn
 wire alu_nf;
-// result of 'alu_operand_a' OP 'regb_dat'
+// result of 'alu_operand_a' OP 'alu_operand_b'
 wire [REGS_WIDTH-1:0] alu_result;
 
 //
 // Registers (part two)
 //
 
+// write enable
 wire regs_we = 
     is_alu_op ||
     was_do_op && is_ldi || 
     urx_wb; // if uart wants to write recieved data
 
+// data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
     is_alu_op ? alu_result :
     was_do_op && is_ldi ? instr :
@@ -209,14 +217,14 @@ wire zn_clr = cs_call;
 // Core
 //
 
-reg [3:0] stp;
-localparam STP_EXECUTE       = 1;
-localparam STP_LDI           = 2;
-localparam STP_LD_WB         = 3;
-localparam STP_BRANCH        = 4;
-localparam STP_UART_WRITE    = 5;
-localparam STP_UART_READ     = 6;
-localparam STP_UART_READ_WB  = 7;
+localparam STP_EXECUTE       = 0;
+localparam STP_LDI           = 1;
+localparam STP_BRANCH        = 2;
+localparam STP_UART_WRITE    = 3;
+localparam STP_UART_READ     = 4;
+localparam STP_UART_READ_WB  = 5;
+
+reg [$clog2(6)-1:0] stp;
 
 always @(posedge clk) begin
     `ifdef DBG
