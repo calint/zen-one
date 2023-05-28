@@ -51,9 +51,7 @@ always @(posedge clk) begin
             end else if (ret) begin
                 //$display("*** ret to: %0d, idx=%0d", mem[idx][RAM_ADDR_WIDTH-1:0], idx);
                 idx = idx - 1;
-                zf_out <= mem[idx][RAM_ADDR_WIDTH+1];
-                nf_out <= mem[idx][RAM_ADDR_WIDTH];
-                pc_out <= mem[idx][RAM_ADDR_WIDTH-1:0];
+                {zf_out, nf_out, pc_out} <= mem[idx];
             end
         end
     end
