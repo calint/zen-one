@@ -73,7 +73,7 @@ initial begin
     // ifz ledi 0b0010     # if(r3==0)     
     // 2F31 // [6] 8:5
     #clk_tk
-    if (top.led == 3'b0010) $display("case 6 passed"); else $display("case 6 FAILED");
+    if (top.led == 4'b0010) $display("case 6 passed"); else $display("case 6 FAILED");
 
     // ifp call err         # if(r3>0) ; branch not taken
     // FFF8 // [7] 8:5
