@@ -208,6 +208,15 @@ initial begin
     #clk_tk
     if (top.ram.ram[16'hffff] == 1) $display("case 24 passed"); else $display("case 24 FAILED");
     
+    // ld r1 r8            # r8=ram[1] == 0xffff
+    // 8153 // [70] 38:5
+    #clk_tk
+
+    // st r9 r8            # ram[0]=0xffff
+    // 8973 // [71] 39:5
+    #clk_tk
+    if (top.ram.ram[0] == 16'hffff) $display("case 25 passed"); else $display("case 25 FAILED");
+
     $finish;
 end
 

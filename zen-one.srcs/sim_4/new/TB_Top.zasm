@@ -35,6 +35,8 @@ endfunc
     add r7 r7           # 0xffff + 0xffff = 0xfffe
     ld r1 r8            # r8=ram[1] == 0xffff
     st r8 r1            # ram[0xffff]=1
+    ld r1 r8            # r8=ram[1] == 0xffff
+    st r9 r8            # ram[0]=0xffff
 done:
     ledi 0b0001
     jmp done
