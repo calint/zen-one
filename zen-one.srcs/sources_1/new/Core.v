@@ -74,9 +74,9 @@ reg was_do_op;
 // load (ld)
 //
 
-// enabled when previous instruciton was 'ld'
+// enabled when previous instruction was 'ld'
 //  the load instruction writes to register during the second cycle
-reg is_ld;
+reg was_ld;
 // the register to which the 'ld' instruction wants to write to
 //  set in the first cycle of the instruction
 reg [3:0] ld_reg;
@@ -154,12 +154,12 @@ wire [REGS_WIDTH-1:0] alu_operand_a =
     instr_op == OP_SHF || instr_op == OP_ADDI ? 
         (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
      // if 'ld' is loading the refered register (hazard resolution)
-    is_ld && ld_reg == rega ? ram_doa :
+    was_ld && ld_reg == rega ? ram_doa :
     rega_dat; // otherwise regs[a]
 
 wire [REGS_WIDTH-1:0] alu_operand_b =
     // if 'ld' is loading the refered register (hazard resolution)
-    is_ld && ld_reg == regb ? ram_doa :
+    was_ld && ld_reg == regb ? ram_doa :
     regb_dat;
     
 // wire 'zero' flag to Zn
@@ -194,12 +194,14 @@ assign ram_wea = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 // address to write
 assign ram_addra = 
-    is_ld && ld_reg == rega ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
+    // if 'ld' is writing the refered register (hazard resolution)
+    was_ld && ld_reg == rega ? ram_doa :
     rega_dat;
 
 // data to write
 assign ram_dia = 
-    is_ld && ld_reg == regb ? ram_doa : // if 'ld' is writing the refered register (hazard resolution)
+    // if 'ld' is writing the refered register (hazard resolution)
+    was_ld && ld_reg == regb ? ram_doa :
     regb_dat;
 
 //
@@ -238,7 +240,7 @@ always @(posedge clk) begin
         ldi_reg <= 0;
         urx_reg <= 0;
         was_do_op <= 0;
-        is_ld <= 0;
+        was_ld <= 0;
         ld_reg <= 0;
         is_bubble <= 0;
         led <= 0;
@@ -252,7 +254,7 @@ always @(posedge clk) begin
     
         urx_wb <= 0; // disable writing 'urx_reg_dat'
         is_bubble <= 0; // disable flag if set in previous instruction
-        is_ld <= 0;
+        was_ld <= 0;
         
         if (cs_ret) begin
             //$display("***** cs_ret %0d", cs_pc_out);
@@ -330,7 +332,7 @@ always @(posedge clk) begin
                         end
 
                         OP_LD: begin
-                            is_ld <= 1;
+                            was_ld <= 1;
                             ld_reg <= instr[15:12];
                         end
                         
@@ -398,7 +400,7 @@ Registers #(
     .rd2(regb_dat),
     .wd2(regs_wd),
     .we2(regs_we),
-    .we3(is_ld),
+    .we3(was_ld),
     .wd3(ram_doa),
     .ra3(ld_reg)
 );
