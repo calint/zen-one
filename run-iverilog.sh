@@ -5,13 +5,14 @@
 set -e
 
 SIMPTH=zen-one.srcs/$1/new
+TB=$2.v
 SRCPTH=../../sources_1/new
 
 cd $SIMPTH
 pwd
 
 iverilog -o iverilog.out \
-    $2.v \
+    $TB \
     $SRCPTH/Top.v \
     $SRCPTH/RAM.v \
     $SRCPTH/Core.v \
