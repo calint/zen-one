@@ -1,5 +1,6 @@
 [ ] zasm: example 'alias r1 strptr ; ld strptr r2'
 [ ] zasm: example 'string roome "u r in roome"'
+[ ] Calls has 2 blocking assignments. nba?
 [ ] instruction to read button(s)
 -----------------------------------------------------------------------------
 [x] parameterize modules
