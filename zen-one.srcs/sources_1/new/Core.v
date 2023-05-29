@@ -349,7 +349,7 @@ always @(posedge clk) begin
             end // if (is_do_op)
         end // case
 
-        STP_LDI: begin // OP_LDI second part
+        STP_LDI: begin // OP_LDI second part, writes instruction to 'ldi_reg'
             is_ldi <= 0;
             stp <= STP_EXECUTE;
         end
@@ -380,7 +380,7 @@ always @(posedge clk) begin
             end
         end
         
-        STP_UART_READ_WB: begin // one cycle to write back the register
+        STP_UART_READ_WB: begin // OP_IO_READ: one cycle to write back the register
             pc <= pc + 1;
             stp <= STP_EXECUTE;
         end
