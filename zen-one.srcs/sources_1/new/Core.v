@@ -375,7 +375,7 @@ always @(posedge clk) begin
                     urx_reg_dat[7:0] <= urx_dat; // write the low byte
                 end
                 urx_go <= 0; // acknowledge the ready data has been read
-                urx_wb <= 1;
+                urx_wb <= 1; // enable write of 'urx_reg_dat' to 'urx_reg'
                 stp <= STP_UART_READ_WB;
             end
         end
