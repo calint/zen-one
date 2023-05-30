@@ -140,9 +140,14 @@ wire cs_nf;
 //
 
 // wired to 'Registers' output of 'rega' and 'regb'
-wire [REGS_WIDTH-1:0] rega_dat;
-wire [REGS_WIDTH-1:0] regb_dat;
+wire [REGS_WIDTH-1:0] regs_rd1;
+wire [REGS_WIDTH-1:0] regs_rd2;
 
+// pipeline hazard resolved 
+wire [REGS_WIDTH-1:0] rega_dat = 
+    was_ld && ld_reg == rega ? ram_doa : regs_rd1;
+wire [REGS_WIDTH-1:0] regb_dat = 
+    was_ld && ld_reg == regb ? ram_doa : regs_rd2;
 //
 // ALU
 //
@@ -156,14 +161,9 @@ wire [2:0] alu_op =
 wire [REGS_WIDTH-1:0] alu_operand_a =
     instr_op == OP_SHF || instr_op == OP_ADDI ? 
         (rega[3] ? {{(REGS_WIDTH-4){rega[3]}},rega} : {{(REGS_WIDTH-4){1'b0}},rega} + 1) : 
-     // if 'ld' is loading the refered register (hazard resolution)
-    was_ld && ld_reg == rega ? ram_doa :
-    rega_dat; // otherwise regs[a]
+    rega_dat;
 
-wire [REGS_WIDTH-1:0] alu_operand_b =
-    // if 'ld' is loading the refered register (hazard resolution)
-    was_ld && ld_reg == regb ? ram_doa :
-    regb_dat;
+wire [REGS_WIDTH-1:0] alu_operand_b = regb_dat;
     
 // wire 'zero' flag to Zn
 wire alu_zf;
@@ -198,16 +198,9 @@ wire [REGS_WIDTH-1:0] regs_wd =
 assign ram_wea = !is_uart_stall && is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 // address to write
-assign ram_addra = 
-    // if 'ld' is writing the refered register (hazard resolution)
-    was_ld && ld_reg == rega ? ram_doa :
-    rega_dat;
-
+assign ram_addra = rega_dat;
 // data to write
-assign ram_dia = 
-    // if 'ld' is writing the refered register (hazard resolution)
-    was_ld && ld_reg == regb ? ram_doa :
-    regb_dat;
+assign ram_dia =  regb_dat;
 
 //
 // Zn
@@ -303,11 +296,7 @@ always @(posedge clk) begin
 
                         OP_IO_READ: begin // receive blocking
                             urx_reg <= regb; // save 'regb' to be used at write register
-                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
-                                urx_reg_dat <= ram_doa;
-                            end else begin
-                                urx_reg_dat <= regb_dat; // save current value of 'regb'
-                            end
+                            urx_reg_dat <= regb_dat; // save current value of 'regb'
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
                             if (!cs_ret) begin
@@ -318,11 +307,7 @@ always @(posedge clk) begin
                         end 
                         
                         OP_IO_WRITE: begin // send blocking
-                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
-                                utx_dat <= rega[3] ? ram_doa[15:8] : ram_doa[7:0];
-                            end else begin
-                                utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
-                            end
+                            utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0];
                             utx_go <= 1; // enable start of write
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
@@ -332,11 +317,7 @@ always @(posedge clk) begin
                         end                       
                         
                         OP_IO_LED: begin // led and ledi
-                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
-                                led <= rega[3] ? regb : ram_doa[3:0];
-                            end else begin
-                                led <= rega[3] ? regb : regb_dat[3:0];
-                            end
+                            led <= rega[3] ? regb : regb_dat[3:0];
                         end
 
                         endcase
@@ -418,8 +399,8 @@ Registers #(
     .clk(clk),
     .ra1(rega),
     .ra2(regb),
-    .rd1(rega_dat),
-    .rd2(regb_dat),
+    .rd1(regs_rd1),
+    .rd2(regs_rd2),
     .wd2(regs_wd),
     .we2(regs_we),
     .we3(was_ld),

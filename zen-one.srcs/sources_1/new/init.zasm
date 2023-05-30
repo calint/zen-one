@@ -1,11 +1,16 @@
-addi 1 r0
-led r0
-
+ledi 0b1000
+xor r15 r15          # zero r15
 loop:
     ldi hello.len r2 # hello
     ld r2 r2         # load len
     ldi hello.buf r1 # buffer 
-    call print
+    call print       #
+    
+    addi 1 r15
+    cp r15 r1        # print r15 as hex
+    call print_hex   #
+    ldi 0x20 r1      # space
+    wl r1            #
     
     ldi input.buf r1 # input buffer
     ldi input.len r2 # buffer size address
@@ -76,6 +81,76 @@ print: func # r1: strptr, r2: strlen   clobbers: r1, r3, r4
     wl r4  ret           #   last character
 endfunc
 
+print_hex: func # r1: number   clobbers: r2 r3 r4 r5 r6 r7
+    ldi 0x0f r2    # bit mask
+    ldi 10 r3      # constant 10 for compare
+    ldi 0x30 r4    # bits to 'or' to map number to ascii 0-9
+    ldi 0x41 r5    # ascii 'A'
+
+    # bits 15:12
+    cp r1 r7           # don't clobber r1
+    shf 4 r7           # shift to
+    shf 8 r7           #   lowest nibble
+    cp r7 r6           # 
+    sub r3 r6          # compare with 10
+    ifp jmp letter4    # if r6 > r3
+    ifz jmp letter4    # if r6 == r3
+        or r4 r7       # nibble below 10, 'or' 0x30 to get ascii digit 0-9
+        wl r7          # write ascii 0-9
+        jmp hex3       # next nibble
+    letter4:           # nibble 10 or above
+    add r5 r6          # 'A' + r6
+    wl r6              # write ascii a-f
+
+    # bits 11:8
+    hex3:
+    cp r1 r7           # don't clobber r1
+    shf 8 r7           # shift to lowest nibble
+    and r2 r7          # bit mask lowest nibble
+    cp r7 r6           # compare with
+    sub r3 r6          #   10
+    ifp jmp letter3    # if greater
+    ifz jmp letter3    # if equal
+        or r4 r7       
+        wl r7
+        jmp hex2
+    letter3:            
+    add r5 r6          
+    wl r6              
+
+    # bits 7:4
+    hex2:
+    cp r1 r7           
+    shf 4 r7           
+    and r2 r7
+    cp r7 r6           
+    sub r3 r6          
+    ifp jmp letter2    
+    ifz jmp letter2    
+        or r4 r7       
+        wl r7
+        jmp hex1
+    letter2:           
+    add r5 r6          
+    wl r6              
+
+    # bits 3:0
+    hex1:
+    cp r1 r7           
+    and r2 r7
+    cp r7 r6           
+    sub r3 r6          
+    ifp jmp letter1    
+    ifz jmp letter1    
+        or r4 r7       
+        wl r7  ret
+    letter1:          
+    add r5 r6         
+    wl r6  ret
+
+endfunc
+
+# ----------------------------------------------------------------------
 hello.len: 6
 hello.buf:
     0x4548 # 'EH'

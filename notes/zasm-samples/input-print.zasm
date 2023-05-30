@@ -1,11 +1,15 @@
+addi 1 r0
+led r0
+
 loop:
-    ldi hello.len r2
-    ld r2 r2
-    ldi hello.buf f1
+    ldi hello.len r2 # hello
+    ld r2 r2         # load len
+    ldi hello.buf r1 # buffer 
     call print
     
     ldi input.buf r1 # input buffer
-    ldi input.len r2 # buffer size
+    ldi input.len r2 # buffer size address
+    ld r2 r2         # buffer size
     call input       # input (buffer:r1, buflen:r2)
     ldi 0xa r3       # new line
     wl r3            #  send
@@ -89,3 +93,4 @@ input.buf:
     0 0 0 0 0 0 0 0
     0 0 0 0 0 0 0 0
     0 0 0 0 0 0 0 0
+    
