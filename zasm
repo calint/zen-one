@@ -1,1399 +1,1433 @@
 #!/usr/bin/java --source 11
-//   zen-x assembler
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Stack;
 
-import java.nio.charset.*;
-import java.nio.file.*;
-import java.util.*;
 
-public class zasm {
-  private static ArrayList<Statement> stmts = new ArrayList<>();
+public class Zasm {
+	private static ArrayList<Statement> stmts = new ArrayList<Statement>();
 
-  public static void main(String[] args) throws Throwable {
-    String srcPathStr = args.length == 0 ? "rom.zasm" : args[0];
-    Path srcPath = Paths.get(srcPathStr);
-    if (!Files.exists(srcPath)) {
-      System.out.println("source file '" + srcPath + "' not found");
-      return;
-    }
-    boolean padTo64K = false;
+	public static void main(String[] args) throws Throwable {
+		String srcPathStr = args.length == 0 ? "rom.zasm" : args[0];
+		File srcPath = new File(srcPathStr);
+		if (!srcPath.exists()) {
+			System.out.println("source file '" + srcPath + "' not found");
+			return;
+		}
+		boolean padTo64K = false;
 
-    System.out.println("compiling: " + srcPath);
-    String srcIn = Files.readString(srcPath);
-    Tokenizer tz = new Tokenizer(srcIn);
-    StringBuilder srcOut = new StringBuilder();
-    while (true) {
-      Token zn = tz.nextToken();
-      if (zn.id().endsWith(":")) {
-        stmts.add(new StmtLabel(zn, tz));
-        continue;
-      }
-      if (zn.isId("#")) {
-        stmts.add(new StmtComment(zn, tz));
-        continue;
-      }
-      if (zn.isId("@")) {
-        stmts.add(new StmtFwdTo(zn, tz));
-        continue;
-      }
-      if (zn.isId("endfunc")) {
-        stmts.add(new StmtEndFunc(zn));
-        continue;
-      }
-      Token id = null;
-      if (zn.isId("ifz") || zn.isId("ifn") || zn.isId("ifp")) {
-        id = tz.nextToken();
-        if (id.isEmpty()) throw new Exception(id.sourcePos() + ": unexpected end of file");
-      }
-      if (zn.isEmpty()) {
-        stmts.add(new Eof(zn));
-        break;
-      }
-      if (id == null) {
-        id = zn;
-        zn = null;
-      }
-      if (id.isId("ldi")) {
-        stmts.add(new OpLdi(zn, id, tz));
-      } else if (id.isId("st")) {
-        stmts.add(new OpSt(zn, id, tz));
-      } else if (id.isId("ld")) {
-        stmts.add(new OpLd(zn, id, tz));
-      } else if (id.isId("addi")) {
-        stmts.add(new OpAddi(zn, id, tz));
-      } else if (id.isId("add")) {
-        stmts.add(new OpAdd(zn, id, tz));
-      } else if (id.isId("sub")) {
-        stmts.add(new OpSub(zn, id, tz));
-      } else if (id.isId("or")) {
-        stmts.add(new OpOr(zn, id, tz));
-      } else if (id.isId("xor")) {
-        stmts.add(new OpXor(zn, id, tz));
-      } else if (id.isId("and")) {
-        stmts.add(new OpAnd(zn, id, tz));
-      } else if (id.isId("not")) {
-        stmts.add(new OpNot(zn, id, tz));
-      } else if (id.isId("cp")) {
-        stmts.add(new OpCp(zn, id, tz));
-      } else if (id.isId("shf")) {
-        stmts.add(new OpShf(zn, id, tz));
-      } else if (id.isId("jmp")) {
-        stmts.add(new OpJmp(zn, id, tz));
-      } else if (id.isId("call")) {
-        stmts.add(new OpCall(zn, id, tz));
-      } else if (id.isId("wl")) {
-        stmts.add(new OpWl(zn, id, tz));
-      } else if (id.isId("wh")) {
-        stmts.add(new OpWh(zn, id, tz));
-      } else if (id.isId("rl")) {
-        stmts.add(new OpRl(zn, id, tz));
-      } else if (id.isId("rh")) {
-        stmts.add(new OpRh(zn, id, tz));
-      } else if (id.isId("ledi")) {
-        stmts.add(new OpLedi(zn, id, tz));
-      } else if (id.isId("led")) {
-        stmts.add(new OpLed(zn, id, tz));
-      } else {
-        short data = Statement.parseImm16(id);
-        stmts.add(new StmtData(id));
-      }
-    }
+		System.out.println("compiling: " + srcPath);
+		String srcIn = readFileToString(srcPath.toString());
 
-    Toc tc = new Toc();
-    // ? messy handling of comments that are on the same line as the statement
-    // example:
-    //  cp r1 r1  # comment statement is after the statement that needs compile
-    int i = 0;
-    final int n = stmts.size();
-    while (true) {
-      if (i == n) break;
-      Statement st = stmts.get(i);
-      String src = st.toSource();
-      tc.addComment(src);
-      srcOut.append(src);
-      i++;
-      if (i == n) break;
-      if (!src.endsWith("\n")) {
-        // handle comment on the same line as the statement
-        Statement cmnt = stmts.get(i);
-        if (cmnt instanceof StmtComment) {
-          String s = cmnt.toSource();
-          tc.addComment(s);
-          srcOut.append(s);
-          i++;
-        }
-      }
-      st.compile(tc);
-    }
+		Toc tc = compile(srcIn, padTo64K);
 
-    tc.link();
+		String output = tc.toAnnotatedHexString(padTo64K); // false: don't pad
+															// to 64K
 
-    String src = srcOut.toString();
-    if (!src.toString().equals(srcIn)) {
-      Files.writeString(Paths.get("diff"), src);
-      System.out.println("!!! source and parsed source differ. See file 'diff'");
-    }
-    // String compiled = toc.toHexString();
-    String compiled = tc.toAnnotatedHexString(padTo64K); // false: don't pad to 64K
+		String compiledPathStr = srcPathStr.substring(0,
+				srcPathStr.lastIndexOf('.')) + ".mem";
+		writeStringToFile(compiledPathStr, output);
+		System.out.println("    wrote: " + compiledPathStr);
+		System.out.println("     size: " + tc.getProgramCounter());
+	}
 
-    String compiledPathStr = srcPathStr.substring(0, srcPathStr.lastIndexOf('.')) + ".mem";
-    Files.writeString(Paths.get(compiledPathStr), compiled);
-    System.out.println("    wrote: " + compiledPathStr);
-    System.out.println("     size: " + tc.getProgramCounter());
-  }
+	public static void compile(String src, short[] ram) throws Throwable {
+		for (int i = 0; i < ram.length; i++) {
+			ram[i] = 0;
+		}
+		Toc tc = compile(src, false);
+		tc.toBinary(ram);
+	}
+
+	private static Toc compile(String srcIn, boolean padTo64K)
+			throws Throwable {
+		stmts.clear();
+		Tokenizer tz = new Tokenizer(srcIn);
+		StringBuilder srcOut = new StringBuilder();
+		while (true) {
+			Token zn = tz.nextToken();
+			if (zn.id().endsWith(":")) {
+				stmts.add(new StmtLabel(zn, tz));
+				continue;
+			}
+			if (zn.isId("#")) {
+				stmts.add(new StmtComment(zn, tz));
+				continue;
+			}
+			if (zn.isId("@")) {
+				stmts.add(new StmtFwdTo(zn, tz));
+				continue;
+			}
+			if (zn.isId("endfunc")) {
+				stmts.add(new StmtEndFunc(zn));
+				continue;
+			}
+			Token id = null;
+			if (zn.isId("ifz") || zn.isId("ifn") || zn.isId("ifp")) {
+				id = tz.nextToken();
+				if (id.isEmpty())
+					throw new Exception(
+							id.sourcePos() + ": unexpected end of file");
+			}
+			if (zn.isEmpty()) {
+				stmts.add(new StmtEof(zn));
+				break;
+			}
+			if (id == null) {
+				id = zn;
+				zn = null;
+			}
+			if (id.isId("ldi")) {
+				stmts.add(new OpLdi(zn, id, tz));
+			} else if (id.isId("st")) {
+				stmts.add(new OpSt(zn, id, tz));
+			} else if (id.isId("ld")) {
+				stmts.add(new OpLd(zn, id, tz));
+			} else if (id.isId("addi")) {
+				stmts.add(new OpAddi(zn, id, tz));
+			} else if (id.isId("add")) {
+				stmts.add(new OpAdd(zn, id, tz));
+			} else if (id.isId("sub")) {
+				stmts.add(new OpSub(zn, id, tz));
+			} else if (id.isId("or")) {
+				stmts.add(new OpOr(zn, id, tz));
+			} else if (id.isId("xor")) {
+				stmts.add(new OpXor(zn, id, tz));
+			} else if (id.isId("and")) {
+				stmts.add(new OpAnd(zn, id, tz));
+			} else if (id.isId("not")) {
+				stmts.add(new OpNot(zn, id, tz));
+			} else if (id.isId("cp")) {
+				stmts.add(new OpCp(zn, id, tz));
+			} else if (id.isId("shf")) {
+				stmts.add(new OpShf(zn, id, tz));
+			} else if (id.isId("jmp")) {
+				stmts.add(new OpJmp(zn, id, tz));
+			} else if (id.isId("call")) {
+				stmts.add(new OpCall(zn, id, tz));
+			} else if (id.isId("wl")) {
+				stmts.add(new OpWl(zn, id, tz));
+			} else if (id.isId("wh")) {
+				stmts.add(new OpWh(zn, id, tz));
+			} else if (id.isId("rl")) {
+				stmts.add(new OpRl(zn, id, tz));
+			} else if (id.isId("rh")) {
+				stmts.add(new OpRh(zn, id, tz));
+			} else if (id.isId("ledi")) {
+				stmts.add(new OpLedi(zn, id, tz));
+			} else if (id.isId("led")) {
+				stmts.add(new OpLed(zn, id, tz));
+			} else {
+				stmts.add(new StmtData(id));
+			}
+		}
+
+		Toc tc = new Toc();
+		// ? messy handling of comments that are on the same line as the
+		// statement
+		// example:
+		// cp r1 r1 # comment statement is after the statement that needs
+		// compile
+		int i = 0;
+		final int n = stmts.size();
+		while (true) {
+			if (i == n)
+				break;
+			Statement st = stmts.get(i);
+			String src = st.toSource();
+			tc.addComment(src);
+			srcOut.append(src);
+			i++;
+			if (i == n)
+				break;
+			if (!src.endsWith("\n")) {
+				// handle comment on the same line as the statement
+				Statement cmnt = stmts.get(i);
+				if (cmnt instanceof StmtComment) {
+					String s = cmnt.toSource();
+					tc.addComment(s);
+					srcOut.append(s);
+					i++;
+				}
+			}
+			st.compile(tc);
+		}
+
+		tc.link();
+
+		String src = srcOut.toString();
+		if (!src.toString().equals(srcIn)) {
+			writeStringToFile("diff.zasm", src);
+			throw new Exception(
+					"reproduced source from statements differs from the source");
+		}
+
+		return tc;
+	}
+
+	public static String readFileToString(String filePath) throws IOException {
+		BufferedReader reader = new BufferedReader(new FileReader(filePath));
+		StringBuilder sb = new StringBuilder();
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			sb.append(line);
+			sb.append(System.getProperty("line.separator"));
+		}
+		reader.close();
+		return sb.toString();
+	}
+
+	public static void writeStringToFile(String filePath, String fileContent)
+			throws IOException {
+		BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+		writer.write(fileContent);
+		writer.close();
+	}
 }
 
-class Toc {
-  public enum LinkType {
-    CALL,
-    JMP,
-    LDI
-  }
+class OpAdd extends Statement {
+	private Token rega;
+	private Token regb;
 
-  private ArrayList<Short> instrs = new ArrayList<>();
-  private ArrayList<Statement> stmts = new ArrayList<>();
-  private ArrayList<ArrayList<String>> comments = new ArrayList<>();
-  private ArrayList<Link> links = new ArrayList<>();
-  private HashMap<String, Label> allLabels = new HashMap<>();
-  private Stack<Scope> scopes = new Stack<>();
-  private int pc;
+	public OpAdd(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
 
-  private static class Scope {
-    HashMap<String, Label> labels = new HashMap<>(); // labels declared in this scope
-    String name; // the function name
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
 
-    public Scope(String name) {
-      this.name = name;
-    }
-  }
-
-  private static class Link {
-    Token token; // source location
-    int pc; // location
-    String name; // name as used in source
-    String scopedName; // name including scope
-    LinkType type; // call, jmp, ldi
-
-    public Link(Token token, int pc, String name, String scopedName, LinkType type) {
-      this.token = token;
-      this.pc = pc;
-      this.name = name;
-      this.scopedName = scopedName;
-      this.type = type;
-    }
-  }
-
-  private static class Label {
-    Token token; // token which declared the label
-    int pc; // program counter where it was declared
-    String name; // name
-    boolean isFunc; // function
-
-    public Label(Token token, int pc, String name, boolean isFunc) {
-      this.token = token;
-      this.pc = pc;
-      this.name = name;
-      this.isFunc = isFunc;
-    }
-  }
-
-  public void enterFunc(Token tk, String name) throws Throwable {
-    if (!scopes.isEmpty())
-      throw new Exception(tk.sourcePos() + ": cannot declare function within function");
-    scopes.push(new Scope(name));
-  }
-
-  public void exitFunc(Token tk) throws Throwable {
-    if (scopes.isEmpty()) throw new Exception(tk.sourcePos() + ": not in a function");
-
-    scopes.pop();
-  }
-
-  public int getProgramCounter() {
-    return pc;
-  }
-
-  private Label getLabelInCurrentScope(String label) {
-    if (scopes.isEmpty()) return allLabels.get(label);
-
-    return scopes.peek().labels.get(label);
-  }
-
-  private String getScopePrefix() {
-    final int n = scopes.size();
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < n; i++) {
-      sb.append(scopes.get(i).name).append('.');
-    }
-    return sb.toString();
-  }
-
-  private void ensureCommentsArraySize() {
-    final int n = comments.size();
-    final int m = pc + 1; // +1 because comments before the statement are added to next pc
-    for (int i = n; i < m; i++) {
-      comments.add(null);
-    }
-  }
-
-  public void addComment(String txt) {
-    ensureCommentsArraySize();
-    ArrayList<String> ls = comments.get(pc);
-    if (ls == null) {
-      ls = new ArrayList<>();
-      comments.set(pc, ls);
-    }
-    ls.add(txt);
-  }
-
-  public void write(Statement stmt, short instr) {
-    stmts.add(stmt);
-    instrs.add(Short.valueOf(instr));
-    pc++;
-  }
-
-  public void write(Statement stmt, short instr, LinkType linkType, String label, Token tk) {
-    Link lnk = new Link(tk, pc, label, getScopePrefix() + label, linkType);
-    links.add(lnk);
-    write(stmt, instr);
-  }
-
-  public void addLabel(Token tk, String name, boolean isFunc) throws Throwable {
-    Label lbl = getLabelInCurrentScope(name);
-    if (lbl != null) {
-      throw new Exception(
-          tk.sourcePos() + ": label '" + name + "' already declared at " + lbl.token.sourcePos());
-    }
-    if (isFunc) {
-      // align at 16 bytes
-      if ((pc & 0xf) != 0) {
-        int pc_nxt = (pc & 0xfff0) + 0x10;
-        if (pc_nxt > 0xffff)
-        throw new Exception(
-          tk.sourcePos() + ": function '" + name + "' cannot be located at '" + pc_nxt + "' because it would be out-of-range of '" + 0xfff0 + "'");
-        fwdPcTo(tk, pc_nxt, true);
-      }
-    }
-    Label newLbl = new Label(tk, pc, name, isFunc);
-    allLabels.put(getScopePrefix() + name, newLbl); // i.e. 'print.done' where 'done' is the label
-    if (isFunc) {
-      enterFunc(tk, name);
-    } else {
-      if (!scopes.isEmpty()) { // if within the scope of a function add the label to current scope
-        scopes.peek().labels.put(name, newLbl);
-      }
-    }
-  }
-
-  /** Moves the program counter forward and pads the space with 0. */
-  public void fwdPcTo(Token tk, int addr, boolean moveComments) throws Throwable {
-    if (addr < pc)
-      throw new Exception(
-          tk.sourcePos() + ": cannot move program counter to " + addr + " because it is " + pc);
-    // add empty statements in the padding
-    for (int i = pc; i < addr; i++) {
-      instrs.add((short) 0);
-      stmts.add(null);
-      comments.add(null);
-    }
-    if (moveComments) {
-      // move the current comments to the beginning of the function
-      // one more element in comments for the next instruction
-      comments.add(null);
-      comments.set(addr, comments.remove(pc));
-    }
-    pc = addr;
-  }
-
-  public void link() throws Throwable {
-    for (Link lnk : links) {
-      short instr = instrs.get(lnk.pc);
-      switch (lnk.type) {
-        case CALL:
-          {
-            Label lbl = allLabels.get(lnk.name); // get function from global scope using 'name'
-            if (lbl == null)
-              throw new Exception(
-                  lnk.token.sourcePos() + ": function '" + lnk.name + "' not found");
-
-            assert ((lbl.pc & 0xf) == 0);
-            instr |= lbl.pc;
-            break;
-          }
-        case JMP:
-          {
-            Label lbl = allLabels.get(lnk.scopedName); // get label from current scope
-            if (lbl == null)
-              throw new Exception(
-                  lnk.token.sourcePos() + ": label '" + lnk.scopedName + "' not found");
-
-            int dpc = lbl.pc - lnk.pc;
-            if (dpc > 2047 || dpc < -2048) {
-              throw new Exception(
-                  lnk.token.sourcePos()
-                      + ": jmp to '"
-                      + lbl.name
-                      + "' out-of-range (offset: "
-                      + dpc
-                      + ")");
-            }
-            instr |= (dpc & 0xfff) << 4;
-            break;
-          }
-        case LDI:
-          {
-            Label lbl = allLabels.get(lnk.name); // get from global scope using 'name'
-            if (lbl == null)
-              throw new Exception(
-                  lnk.token.sourcePos() + ": function '" + lnk.name + "' not found");
-
-            instr = (short) lbl.pc;
-            break;
-          }
-        default:
-          assert (false);
-      }
-      instrs.set(lnk.pc, instr);
-    }
-  }
-
-  public String toHexString() {
-    StringBuilder sb = new StringBuilder();
-    int j = 0;
-    int k = 0;
-    final int n = instrs.size();
-    for (int i = 0; i < n; i++) {
-      short instr = instrs.get(i);
-      sb.append(String.format("%04X", instr)).append(' ');
-      j++;
-      if (j > 3) {
-        sb.append('\n');
-        j = 0;
-        k++;
-        if (k > 3) {
-          sb.append('\n');
-          k = 0;
-        }
-      }
-    }
-    sb.append('\n');
-    return sb.toString();
-  }
-
-  // messy handling of comments
-  private void appendComments(StringBuilder sb, int i) {
-    ArrayList<String> cmnts = comments.get(i);
-    if (cmnts == null) return;
-    boolean lastCommentHadNewline = true;
-    for (String s : cmnts) {
-      if (s.isEmpty()) // ? find out where an empty comment is inserted
-        continue;
-      if (lastCommentHadNewline) {
-        sb.append("// ");
-      }
-      String s1 = s.replaceAll("\n", "\n// ");
-      if (s.endsWith("\n")) {
-        s1 = s1.substring(0, s1.length() - 3);
-        lastCommentHadNewline = true;
-      } else {
-        lastCommentHadNewline = false;
-      }
-      sb.append(s1);
-    }
-    if (lastCommentHadNewline) return;
-    sb.append('\n');
-  }
-
-  public String toAnnotatedHexString(boolean padTo64K) {
-    StringBuilder sb = new StringBuilder();
-    int j = 0;
-    int k = 0;
-    final int n = instrs.size();
-    // ? messy handling of comments
-    ensureCommentsArraySize();
-    for (int i = 0; i < n; i++) {
-      appendComments(sb, i);
-      short instr = instrs.get(i);
-      sb.append(String.format("%04X", instr));
-      Statement stmt = stmts.get(i);
-      if (stmt != null) {
-        sb.append(" // ").append("[").append(i).append("] ").append(stmt.sourcePos()).append('\n');
-      } else {
-        sb.append("\n");
-      }
-    }
-    // handle comments at end of file
-    final int m = comments.size();
-    for (int i = instrs.size(); i < m; i++) {
-      appendComments(sb, i);
-    }
-    if (padTo64K) {
-      sb.append("\n\n// padding: " + (0x10000 - n) + " words\n");
-      for (int i = n; i < 0x10000; i++) {
-        sb.append(Integer.toHexString(i)).append(' '); // ("0 ");
-      }
-    }
-    sb.append('\n');
-    return sb.toString();
-  }
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
 }
 
-class StmtEndFunc extends Statement {
-  public StmtEndFunc(Token tk) {
-    super(null, tk);
-  }
+class OpAddi extends Statement {
+	private Token imm4;
+	private Token regb;
 
-  public void compile(Toc toc) throws Throwable {
-    toc.exitFunc(token());
-  }
+	public OpAddi(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		imm4 = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public String toSource() {
+		return super.toSource() + imm4.toSource() + regb.toSource() + toSourceRet();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = parseSignedPosIncImm4(imm4);
+		short b = registerAddressFromToken(regb);
+		if (a > 8 || a < -8) {
+			throw new Exception(
+					imm4.sourcePos() + ": immediate 4 bit value '" + a + "' may be -8 through 8 excluding 0.");
+		}
+		instr |= 1 << 4;
+		if (a >= 0) {
+			a--;
+		}
+		short imm4 = (short) (a >= 0 ? a : (((a & 0x07) - 8) & 0xf));
+		instr |= imm4 << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
 }
 
-class StmtFwdTo extends Statement {
-  private Token addr;
+class OpAnd extends Statement {
+	private Token rega;
+	private Token regb;
 
-  public StmtFwdTo(Token tk, Tokenizer tz) {
-    super(null, tk);
-    addr = tz.nextToken();
-  }
+	public OpAnd(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
 
-  public void compile(Toc toc) throws Throwable {
-    int pc_nxt = Statement.parseUnsignedImm16(addr);
-    toc.fwdPcTo(addr, pc_nxt, false);
-  }
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 8 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
 
-  public String toSource() {
-    return super.toSource() + addr.toSource();
-  }
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpCall extends Statement {
+	private Token lbl;
+
+	public OpCall(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		lbl = tz.nextToken();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		instr |= 0x8;
+		toc.write(this, instr, Toc.LinkType.CALL, lbl.id(), lbl);
+	}
+
+	public String toSource() {
+		return super.toSource() + lbl.toSource();
+	}
+}
+
+class OpCp extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpCp(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 0xc << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpJmp extends Statement {
+	private Token lbl;
+
+	public OpJmp(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		lbl = tz.nextToken();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		instr |= 0xc;
+		toc.write(this, instr, Toc.LinkType.JMP, lbl.id(), lbl);
+	}
+
+	public String toSource() {
+		return super.toSource() + lbl.toSource();
+	}
+}
+
+class OpLd extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpLd(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 5 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+}
+
+class OpLdi extends Statement {
+	private Token regb;
+	private Token imm16;
+
+	public OpLdi(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		imm16 = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public String toSource() {
+		return super.toSource() + imm16.toSource() + regb.toSource() + toSourceRet();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short reg = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= reg << 12;
+		toc.write(this, instr);
+		try {
+			short addr = Statement.parseImm16(imm16);
+			toc.write(this, addr);
+		} catch (Throwable t) {
+			toc.write(this, (short) 0, Toc.LinkType.LDI, imm16.id(), imm16);
+		}
+	}
+}
+
+class OpLed extends Statement {
+	private Token regb;
+
+	public OpLed(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= 7 << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpLedi extends Statement {
+	private Token regb;
+
+	public OpLedi(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = parseImm4(regb);
+		instr |= 3 << 4;
+		instr |= 0xf << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpNot extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpNot(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 0xa << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpOr extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpOr(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 4 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpRh extends Statement {
+	private Token regb;
+
+	public OpRh(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= 0xe << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpRl extends Statement {
+	private Token regb;
+
+	public OpRl(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= 6 << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpShf extends Statement {
+	private Token imm4;
+	private Token regb;
+
+	public OpShf(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		imm4 = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = parseSignedPosIncImm4(imm4);
+		short b = registerAddressFromToken(regb);
+		if (a > 8 || a < -8) {
+			throw new Exception(
+					imm4.sourcePos() + ": immediate 4 bit value '" + a + "' is not within -8 to 8 excluding 0 range.");
+		}
+		instr |= 0xe << 4;
+		if (a >= 0) {
+			a--;
+		}
+		short imm4 = (short) (a >= 0 ? a : (((a & 0x07) - 8) & 0xf));
+		instr |= imm4 << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + imm4.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpSt extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpSt(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 7 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+}
+
+class OpSub extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpSub(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 2 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpWh extends Statement {
+	private Token regb;
+
+	public OpWh(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= 0xa << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpWl extends Statement {
+	private Token regb;
+
+	public OpWl(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short b = registerAddressFromToken(regb);
+		instr |= 3 << 4;
+		instr |= 2 << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class OpXor extends Statement {
+	private Token rega;
+	private Token regb;
+
+	public OpXor(Token zn, Token tk, Tokenizer tz) {
+		super(zn, tk);
+		rega = tz.nextToken();
+		regb = tz.nextToken();
+		readOptionalRet(tz);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+		short instr = getZnr();
+		short a = registerAddressFromToken(rega);
+		short b = registerAddressFromToken(regb);
+		instr |= 6 << 4;
+		instr |= a << 8;
+		instr |= b << 12;
+		toc.write(this, instr);
+	}
+
+	public String toSource() {
+		return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
+	}
+}
+
+class Statement {
+	private Token tk;
+	private Token zn;
+	private Token ret;
+
+	public Statement(Token zn, Token tk) {
+		this.zn = zn;
+		this.tk = tk;
+	}
+
+	void readOptionalRet(Tokenizer tz) {
+		Token tk = tz.nextToken();
+		if (tk.isId("ret")) {
+			ret = tk;
+		} else {
+			tz.pushBackToken(tk);
+		}
+	}
+
+	public String toSource() {
+		return (zn == null ? "" : zn.toSource()) + tk.toSource();
+	}
+
+	public String toSourceRet() {
+		if (ret == null)
+			return "";
+		return ret.toSource();
+	}
+
+	public short getZnr() {
+		short r = (short) (ret == null ? 0 : 4);
+		if (zn != null) {
+			if (zn.isId("ifz")) {
+				return (short) (1 | r);
+			}
+			if (zn.isId("ifn")) {
+				return (short) (2 | r);
+			}
+			if (zn.isId("ifp")) {
+				return (short) (0 | r);
+			}
+		}
+		return (short) (3 | r);
+	}
+
+	public void compile(Toc toc) throws Throwable {
+	}
+
+	public String id() {
+		return tk.id();
+	}
+
+	public Token token() {
+		return tk;
+	}
+
+	public String sourcePos() {
+		return zn == null ? tk.sourcePos() : zn.sourcePos();
+	}
+
+	public static short registerAddressFromToken(Token addr) throws Throwable {
+		short a = Short.parseShort(addr.id().substring(1));
+		if (a < 0 || a > 15) {
+			throw new Exception(
+					addr.sourcePos() + ": unknown register '" + addr.id() + "'. valid registers 'r0' through 'r15'");
+		}
+		return a;
+	}
+
+	public static short parseImm16(Token tk) throws Throwable {
+		try {
+			int i;
+			if (tk.id().startsWith("0b")) {
+				i = Integer.parseInt(tk.id().substring(2), 2);
+			} else {
+				i = Integer.decode(tk.id()).intValue();
+			}
+			if (i < 0 && i < Short.MIN_VALUE)
+				throw new Exception(tk.sourcePos() + ": negative value '" + tk.id() + "' (" + i
+						+ ") does not fit in 16 bits. min value is " + Short.MIN_VALUE);
+			if (i > 0 && i > (1 << 16) - 1)
+				throw new Exception(tk.sourcePos() + ": positive value '" + tk.id() + "' (" + i
+						+ ") does not fit in 16 bits. max value is " + ((1 << 16) - 1));
+			return (short) i;
+		} catch (NumberFormatException e) {
+			throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
+		}
+	}
+
+	public static int parseUnsignedImm16(Token tk) throws Throwable {
+		try {
+			int i;
+			if (tk.id().startsWith("0b")) {
+				i = Integer.parseInt(tk.id().substring(2), 2);
+			} else {
+				i = Integer.decode(tk.id()).intValue();
+			}
+			if (i < 0 || i > 0xffff)
+				throw new Exception(tk.sourcePos() + ": unsigned 16 bit value '" + tk.id() + "' (" + i
+						+ ") is not within range of 0x0000 and 0xffff");
+			return i;
+		} catch (NumberFormatException e) {
+			throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
+		}
+	}
+
+	public static short parseImm4(Token tk) throws Throwable {
+		int i;
+		try {
+			if (tk.id().startsWith("0b")) {
+				i = Integer.parseInt(tk.id().substring(2), 2);
+			} else {
+				i = Integer.decode(tk.id()).intValue();
+			}
+		} catch (NumberFormatException e) {
+			throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
+		}
+		if (i > 15 || i < 0) {
+			throw new Exception(tk.sourcePos() + ": immediate 4 bit value '" + i + "' is is out of 0 -> 15 range.");
+		}
+		return (short) i;
+	}
+
+	public static short parseSignedPosIncImm4(Token tk) throws Throwable {
+		int a;
+		try {
+			a = Integer.decode(tk.id()).shortValue();
+		} catch (NumberFormatException e) {
+			throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
+		}
+		if (a == 0)
+			throw new Exception(
+					tk.sourcePos() + ": signed immediate 4 bit value in this context is not allowed to be 0");
+
+		if (a > 8 || a < -8) {
+			throw new Exception(tk.sourcePos() + ": signed immediate 4 bit value '" + a
+					+ "' is not within -8 to 8 (with 0 being invalid).");
+		}
+		return (short) a;
+	}
+}
+
+class StmtComment extends Statement {
+	private String txt;
+
+	public StmtComment(Token tk, Tokenizer tz) {
+		super(null, tk);
+		txt = tz.readComment();
+	}
+
+	public String toSource() {
+		return super.toSource() + txt;
+	}
 }
 
 class StmtData extends Statement {
 
-  public StmtData(Token data) {
-    super(null, data);
-  }
+	public StmtData(Token data) {
+		super(null, data);
+	}
 
-  public void compile(Toc toc) throws Throwable {
-    toc.write(this, parseImm16(token()));
-  }
+	public void compile(Toc toc) throws Throwable {
+		toc.write(this, parseImm16(token()));
+	}
 }
 
-class OpLed extends Statement {
-  private Token regb;
+class StmtEndFunc extends Statement {
+	public StmtEndFunc(Token tk) {
+		super(null, tk);
+	}
 
-  public OpLed(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= 7 << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
+	public void compile(Toc toc) throws Throwable {
+		toc.exitFunc(token());
+	}
 }
 
-class OpLedi extends Statement {
-  private Token regb;
+class StmtEof extends Statement {
 
-  public OpLedi(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = parseImm4(regb);
-    instr |= 3 << 4;
-    instr |= 0xf << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
+	public StmtEof(Token tk) {
+		super(null, tk);
+	}
 }
 
-class OpRl extends Statement {
-  private Token regb;
+class StmtFwdTo extends Statement {
+	private Token addr;
 
-  public OpRl(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
+	public StmtFwdTo(Token tk, Tokenizer tz) {
+		super(null, tk);
+		addr = tz.nextToken();
+	}
 
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= 6 << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
+	public void compile(Toc toc) throws Throwable {
+		int pc_nxt = Statement.parseUnsignedImm16(addr);
+		toc.fwdPcTo(addr, pc_nxt, false);
+	}
 
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpRh extends Statement {
-  private Token regb;
-
-  public OpRh(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= 0xe << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpWh extends Statement {
-  private Token regb;
-
-  public OpWh(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= 0xa << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpWl extends Statement {
-  private Token regb;
-
-  public OpWl(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short b = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= 2 << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class Eof extends Statement {
-  private Token tk;
-
-  public Eof(Token tk) {
-    super(null, tk);
-  }
+	public String toSource() {
+		return super.toSource() + addr.toSource();
+	}
 }
 
 class StmtLabel extends Statement {
-  private Token func;
+	private Token func;
 
-  public StmtLabel(Token nm, Tokenizer tz) {
-    super(null, nm);
-    Token tp = tz.nextToken();
-    if (tp.isId("func")) {
-      func = tp;
-    } else {
-      tz.pushBackToken(tp);
-    }
-  }
+	public StmtLabel(Token nm, Tokenizer tz) {
+		super(null, nm);
+		Token tp = tz.nextToken();
+		if (tp.isId("func")) {
+			func = tp;
+		} else {
+			tz.pushBackToken(tp);
+		}
+	}
 
-  private Token nm;
+	public void compile(Toc toc) throws Throwable {
+		final String id = id();
+		toc.addLabel(token(), id.substring(0, id.length() - 1), func != null);
+	}
 
-  public void compile(Toc toc) throws Throwable {
-    final String id = id();
-    toc.addLabel(token(), id.substring(0, id.length() - 1), func != null);
-  }
-
-  public String toSource() {
-    return super.toSource() + (func != null ? func.toSource() : "");
-  }
+	public String toSource() {
+		return super.toSource() + (func != null ? func.toSource() : "");
+	}
 }
 
-class StmtComment extends Statement {
-  private Token tk;
-  private String txt;
 
-  public StmtComment(Token tk, Tokenizer tz) {
-    super(null, tk);
-    txt = tz.readComment();
-  }
-
-  public String toSource() {
-    return super.toSource() + txt;
-  }
-}
-
-class OpCall extends Statement {
-  private Token lbl;
-
-  public OpCall(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    lbl = tz.nextToken();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    instr |= 0x8;
-    toc.write(this, instr, Toc.LinkType.CALL, lbl.id(), lbl);
-  }
-
-  public String toSource() {
-    return super.toSource() + lbl.toSource();
-  }
-}
-
-class OpJmp extends Statement {
-  private Token lbl;
-
-  public OpJmp(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    lbl = tz.nextToken();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    instr |= 0xc;
-    toc.write(this, instr, Toc.LinkType.JMP, lbl.id(), lbl);
-  }
-
-  public String toSource() {
-    return super.toSource() + lbl.toSource();
-  }
-}
-
-class OpShf extends Statement {
-  private Token imm4;
-  private Token regb;
-
-  public OpShf(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    imm4 = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = parseSignedPosIncImm4(imm4);
-    short b = registerAddressFromToken(regb);
-    if (a > 8 || a < -8) {
-      throw new Exception(
-          imm4.sourcePos()
-              + ": immediate 4 bit value '"
-              + a
-              + "' is not within -8 to 8 excluding 0 range.");
-    }
-    instr |= 0xe << 4;
-    if (a >= 0) {
-      a--;
-    }
-    short imm4 = (short) (a >= 0 ? a : (((a & 0x07) - 8) & 0xf));
-    instr |= imm4 << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + imm4.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpCp extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpCp(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 0xc << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpNot extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpNot(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 0xa << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpAnd extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpAnd(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 8 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpXor extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpXor(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 6 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpOr extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpOr(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 4 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpSub extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpSub(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 2 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpAdd extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpAdd(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-}
-
-class OpAddi extends Statement {
-  private Token imm4;
-  private Token regb;
-
-  public OpAddi(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    imm4 = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public String toSource() {
-    return super.toSource() + imm4.toSource() + regb.toSource() + toSourceRet();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = parseSignedPosIncImm4(imm4);
-    short b = registerAddressFromToken(regb);
-    if (a > 8 || a < -8) {
-      throw new Exception(
-          imm4.sourcePos()
-              + ": immediate 4 bit value '"
-              + a
-              + "' may be -8 through 8 excluding 0.");
-    }
-    instr |= 1 << 4;
-    if (a >= 0) {
-      a--;
-    }
-    short imm4 = (short) (a >= 0 ? a : (((a & 0x07) - 8) & 0xf));
-    instr |= imm4 << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-}
-
-class OpLd extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpLd(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 5 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-}
-
-class OpSt extends Statement {
-  private Token rega;
-  private Token regb;
-
-  public OpSt(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    rega = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public String toSource() {
-    return super.toSource() + rega.toSource() + regb.toSource() + toSourceRet();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short a = registerAddressFromToken(rega);
-    short b = registerAddressFromToken(regb);
-    instr |= 7 << 4;
-    instr |= a << 8;
-    instr |= b << 12;
-    toc.write(this, instr);
-  }
-}
-
-class OpLdi extends Statement {
-  private Token regb;
-  private Token imm16;
-
-  public OpLdi(Token zn, Token tk, Tokenizer tz) {
-    super(zn, tk);
-    imm16 = tz.nextToken();
-    regb = tz.nextToken();
-    readOptionalRet(tz);
-  }
-
-  public String toSource() {
-    return super.toSource() + imm16.toSource() + regb.toSource() + toSourceRet();
-  }
-
-  public void compile(Toc toc) throws Throwable {
-    short instr = getZnr();
-    short reg = registerAddressFromToken(regb);
-    instr |= 3 << 4;
-    instr |= reg << 12;
-    toc.write(this, instr);
-    try {
-      short addr = Statement.parseImm16(imm16);
-      toc.write(this, addr);
-    } catch (Throwable t) {
-      toc.write(this, (short) 0, Toc.LinkType.LDI, imm16.id(), imm16);
-    }
-  }
-}
-
-class Statement {
-  private Token tk;
-  private Token zn;
-  private Token ret;
-
-  public Statement(Token zn, Token tk) {
-    this.zn = zn;
-    this.tk = tk;
-  }
-
-  void readOptionalRet(Tokenizer tz) {
-    Token tk = tz.nextToken();
-    if (tk.isId("ret")) {
-      ret = tk;
-    } else {
-      tz.pushBackToken(tk);
-    }
-  }
-
-  public String toSource() {
-    return (zn == null ? "" : zn.toSource()) + tk.toSource();
-  }
-
-  public String toSourceRet() {
-    if (ret == null) return "";
-    return ret.toSource();
-  }
-
-  public short getZnr() {
-    short r = (short) (ret == null ? 0 : 4);
-    if (zn != null) {
-      if (zn.isId("ifz")) {
-        return (short) (1 | r);
-      }
-      if (zn.isId("ifn")) {
-        return (short) (2 | r);
-      }
-      if (zn.isId("ifp")) {
-        return (short) (0 | r);
-      }
-    }
-    return (short) (3 | r);
-  }
-
-  public void compile(Toc toc) throws Throwable {}
-
-  public String id() {
-    return tk.id();
-  }
-
-  public Token token() {
-    return tk;
-  }
-
-  public String sourcePos() {
-    return zn == null ? tk.sourcePos() : zn.sourcePos();
-  }
-
-  public static short registerAddressFromToken(Token addr) throws Throwable {
-    short a = Short.parseShort(addr.id().substring(1));
-    if (a < 0 || a > 15) {
-      throw new Exception(
-          addr.sourcePos()
-              + ": unknown register '"
-              + addr.id()
-              + "'. valid registers 'r0' through 'r15'");
-    }
-    return a;
-  }
-
-  public static short parseImm16(Token tk) throws Throwable {
-    try {
-      int i;
-      if (tk.id().startsWith("0b")) {
-        i = Integer.parseInt(tk.id().substring(2), 2);
-      } else {
-        i = Integer.decode(tk.id()).intValue();
-      }
-      if (i < 0 && i < Short.MIN_VALUE)
-        throw new Exception(
-            tk.sourcePos()
-                + ": negative value '"
-                + tk.id()
-                + "' ("
-                + i
-                + ") does not fit in 16 bits. min value is "
-                + Short.MIN_VALUE);
-      if (i > 0 && i > (1 << 16) - 1)
-        throw new Exception(
-            tk.sourcePos()
-                + ": positive value '"
-                + tk.id()
-                + "' ("
-                + i
-                + ") does not fit in 16 bits. max value is "
-                + ((1 << 16) - 1));
-      return (short) i;
-    } catch (NumberFormatException e) {
-      throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
-    }
-  }
-
-  public static int parseUnsignedImm16(Token tk) throws Throwable {
-    try {
-      int i;
-      if (tk.id().startsWith("0b")) {
-        i = Integer.parseInt(tk.id().substring(2), 2);
-      } else {
-        i = Integer.decode(tk.id()).intValue();
-      }
-      if (i < 0 || i > 0xffff)
-        throw new Exception(
-            tk.sourcePos()
-                + ": unsigned 16 bit value '"
-                + tk.id()
-                + "' ("
-                + i
-                + ") is not within range of 0x0000 and 0xffff");
-      return i;
-    } catch (NumberFormatException e) {
-      throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
-    }
-  }
-
-  public static short parseImm4(Token tk) throws Throwable {
-    int i;
-    try {
-      if (tk.id().startsWith("0b")) {
-        i = Integer.parseInt(tk.id().substring(2), 2);
-      } else {
-        i = Integer.decode(tk.id()).intValue();
-      }
-    } catch (NumberFormatException e) {
-      throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
-    }
-    if (i > 15 || i < 0) {
-      throw new Exception(
-          tk.sourcePos()
-              + ": immediate 4 bit value '"
-              + i
-              + "' is is out of 0 -> 15 range.");
-    }
-    return (short) i;
-  }
-  public static short parseSignedPosIncImm4(Token tk) throws Throwable {
-    int a;
-    try {
-      a = Integer.decode(tk.id()).shortValue();
-    } catch (NumberFormatException e) {
-      throw new Exception(tk.sourcePos() + ": cannot parse '" + tk.id() + "' to a number");
-    }
-    if (a == 0)
-      throw new Exception(
-          tk.sourcePos() + ": signed immediate 4 bit value in this context is not allowed to be 0");
-
-    if (a > 8 || a < -8) {
-      throw new Exception(
-          tk.sourcePos()
-              + ": signed immediate 4 bit value '"
-              + a
-              + "' is not within -8 to 8 (with 0 being invalid).");
-    }
-    return (short) a;
-  }
+final class Toc {
+	public enum LinkType {
+		CALL, JMP, LDI
+	}
+
+	private ArrayList<Short> instrs = new ArrayList<Short>();
+	private ArrayList<Statement> stmts = new ArrayList<Statement>();
+	private ArrayList<ArrayList<String>> comments = new ArrayList<ArrayList<String>>();
+	private ArrayList<Link> links = new ArrayList<Link>();
+	private HashMap<String, Label> allLabels = new HashMap<String, Label>();
+	private Stack<Scope> scopes = new Stack<Scope>();
+	private int pc;
+
+	private static class Scope {
+		// labels declared in this scope
+		HashMap<String, Label> labels = new HashMap<String, Label>();
+		String name; // the function name
+
+		public Scope(String name) {
+			this.name = name;
+		}
+	}
+
+	private static class Link {
+		Token token; // source location
+		int pc; // location
+		String name; // name as used in source
+		String scopedName; // name including scope
+		LinkType type; // call, jmp, ldi
+
+		public Link(Token token, int pc, String name, String scopedName,
+				LinkType type) {
+			this.token = token;
+			this.pc = pc;
+			this.name = name;
+			this.scopedName = scopedName;
+			this.type = type;
+		}
+	}
+
+	private static class Label {
+		Token token; // token which declared the label
+		int pc; // program counter where it was declared
+		String name; // name
+		boolean isFunc; // function
+
+		public Label(Token token, int pc, String name, boolean isFunc) {
+			this.token = token;
+			this.pc = pc;
+			this.name = name;
+			this.isFunc = isFunc;
+		}
+	}
+
+	public void enterFunc(Token tk, String name) throws Throwable {
+		if (!scopes.isEmpty())
+			throw new Exception(tk.sourcePos()
+					+ ": cannot declare function within function");
+		scopes.push(new Scope(name));
+	}
+
+	public void exitFunc(Token tk) throws Throwable {
+		if (scopes.isEmpty())
+			throw new Exception(tk.sourcePos() + ": not in a function");
+
+		scopes.pop();
+	}
+
+	public int getProgramCounter() {
+		return pc;
+	}
+
+	private Label getLabelInCurrentScope(String label) {
+		if (scopes.isEmpty())
+			return allLabels.get(label);
+
+		return scopes.peek().labels.get(label);
+	}
+
+	private String getScopePrefix() {
+		final int n = scopes.size();
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < n; i++) {
+			sb.append(scopes.get(i).name).append('.');
+		}
+		return sb.toString();
+	}
+
+	private void ensureCommentsArraySize() {
+		final int n = comments.size();
+		final int m = pc + 1; // +1 because comments before the statement are
+								// added to next pc
+		for (int i = n; i < m; i++) {
+			comments.add(null);
+		}
+	}
+
+	public void addComment(String txt) {
+		ensureCommentsArraySize();
+		ArrayList<String> ls = comments.get(pc);
+		if (ls == null) {
+			ls = new ArrayList<String>();
+			comments.set(pc, ls);
+		}
+		ls.add(txt);
+	}
+
+	public void write(Statement stmt, short instr) {
+		stmts.add(stmt);
+		instrs.add(Short.valueOf(instr));
+		pc++;
+	}
+
+	public void write(Statement stmt, short instr, LinkType linkType,
+			String label, Token tk) {
+		Link lnk = new Link(tk, pc, label, getScopePrefix() + label, linkType);
+		links.add(lnk);
+		write(stmt, instr);
+	}
+
+	public void addLabel(Token tk, String name, boolean isFunc)
+			throws Throwable {
+		Label lbl = getLabelInCurrentScope(name);
+		if (lbl != null) {
+			throw new Exception(tk.sourcePos() + ": label '" + name
+					+ "' already declared at " + lbl.token.sourcePos());
+		}
+		if (isFunc) {
+			// align at 16 bytes
+			if ((pc & 0xf) != 0) {
+				int pc_nxt = (pc & 0xfff0) + 0x10;
+				if (pc_nxt > 0xffff)
+					throw new Exception(tk.sourcePos() + ": function '" + name
+							+ "' cannot be located at '" + pc_nxt
+							+ "' because it would be out-of-range of '" + 0xfff0
+							+ "'");
+				fwdPcTo(tk, pc_nxt, true);
+			}
+		}
+		Label newLbl = new Label(tk, pc, name, isFunc);
+		allLabels.put(getScopePrefix() + name, newLbl); // i.e. 'print.done'
+														// where 'done' is the
+														// label
+		if (isFunc) {
+			enterFunc(tk, name);
+		} else {
+			if (!scopes.isEmpty()) { // if within the scope of a function add
+										// the label to current scope
+				scopes.peek().labels.put(name, newLbl);
+			}
+		}
+	}
+
+	/** Moves the program counter forward and pads the space with 0. */
+	public void fwdPcTo(Token tk, int addr, boolean moveComments)
+			throws Throwable {
+		if (addr < pc)
+			throw new Exception(
+					tk.sourcePos() + ": cannot move program counter to " + addr
+							+ " because it is " + pc);
+		// add empty statements in the padding
+		for (int i = pc; i < addr; i++) {
+			instrs.add((short) 0);
+			stmts.add(null);
+			comments.add(null);
+		}
+		if (moveComments) {
+			// move the current comments to the beginning of the function
+			// one more element in comments for the next instruction
+			comments.add(null);
+			comments.set(addr, comments.remove(pc));
+		}
+		pc = addr;
+	}
+
+	public void link() throws Throwable {
+		for (Link lnk : links) {
+			short instr = instrs.get(lnk.pc);
+			switch (lnk.type) {
+				case CALL : {
+					Label lbl = allLabels.get(lnk.name); // get function from
+															// global scope
+															// using 'name'
+					if (lbl == null)
+						throw new Exception(lnk.token.sourcePos()
+								+ ": function '" + lnk.name + "' not found");
+					if (!lbl.isFunc)
+						throw new Exception(lnk.token.sourcePos() + ": label '"
+								+ lbl.name + "' is not a function");
+					assert ((lbl.pc & 0xf) == 0);
+					instr |= lbl.pc;
+					break;
+				}
+				case JMP : {
+					Label lbl = allLabels.get(lnk.scopedName); // get label from
+																// current scope
+					if (lbl == null)
+						throw new Exception(lnk.token.sourcePos() + ": label '"
+								+ lnk.scopedName + "' not found");
+
+					int dpc = lbl.pc - lnk.pc;
+					if (dpc > 2047 || dpc < -2048) {
+						throw new Exception(lnk.token.sourcePos() + ": jmp to '"
+								+ lbl.name + "' out-of-range (offset: " + dpc
+								+ ")");
+					}
+					instr |= (dpc & 0xfff) << 4;
+					break;
+				}
+				case LDI : {
+					Label lbl = allLabels.get(lnk.name); // get from global
+															// scope using
+															// 'name'
+					if (lbl == null)
+						throw new Exception(lnk.token.sourcePos()
+								+ ": function '" + lnk.name + "' not found");
+
+					instr = (short) lbl.pc;
+					break;
+				}
+				default :
+					assert (false);
+			}
+			instrs.set(lnk.pc, instr);
+		}
+	}
+
+	public String toHexString() {
+		StringBuilder sb = new StringBuilder();
+		int j = 0;
+		int k = 0;
+		final int n = instrs.size();
+		for (int i = 0; i < n; i++) {
+			short instr = instrs.get(i);
+			sb.append(String.format("%04X", instr)).append(' ');
+			j++;
+			if (j > 3) {
+				sb.append('\n');
+				j = 0;
+				k++;
+				if (k > 3) {
+					sb.append('\n');
+					k = 0;
+				}
+			}
+		}
+		sb.append('\n');
+		return sb.toString();
+	}
+
+	// messy handling of comments
+	private void appendComments(StringBuilder sb, int i) {
+		ArrayList<String> cmnts = comments.get(i);
+		if (cmnts == null)
+			return;
+		boolean lastCommentHadNewline = true;
+		for (String s : cmnts) {
+			if (s == null || s.length() == 0) // ? find out where an empty
+												// comment is inserted
+				continue;
+			if (lastCommentHadNewline) {
+				sb.append("// ");
+			}
+			String s1 = s.replaceAll("\n", "\n// ");
+			if (s.endsWith("\n")) {
+				s1 = s1.substring(0, s1.length() - 3);
+				lastCommentHadNewline = true;
+			} else {
+				lastCommentHadNewline = false;
+			}
+			sb.append(s1);
+		}
+		if (lastCommentHadNewline)
+			return;
+		sb.append('\n');
+	}
+
+	public String toAnnotatedHexString(boolean padTo64K) {
+		StringBuilder sb = new StringBuilder();
+		final int n = instrs.size();
+		// ? messy handling of comments
+		ensureCommentsArraySize();
+		for (int i = 0; i < n; i++) {
+			appendComments(sb, i);
+			short instr = instrs.get(i);
+			sb.append(String.format("%04X", instr));
+			Statement stmt = stmts.get(i);
+			if (stmt != null) {
+				sb.append(" // ").append("[").append(i).append("] ")
+						.append(stmt.sourcePos()).append('\n');
+			} else {
+				sb.append("\n");
+			}
+		}
+		// handle comments at end of file
+		final int m = comments.size();
+		for (int i = instrs.size(); i < m; i++) {
+			appendComments(sb, i);
+		}
+		if (padTo64K) {
+			sb.append("\n\n// padding: " + (0x10000 - n) + " words\n");
+			for (int i = n; i < 0x10000; i++) {
+				sb.append(Integer.toHexString(i)).append(' '); // ("0 ");
+			}
+		}
+		sb.append('\n');
+		return sb.toString();
+	}
+
+	public short[] toBinary(final short[] bin) {
+		final int n = instrs.size();
+		for (int i = 0; i < n; i++) {
+			short instr = instrs.get(i);
+			bin[i] = instr;
+		}
+		return bin;
+	}
 }
 
 class Token {
-  private String ws_lft;
-  private String id;
-  private String ws_rht;
-  private int pos_ws_lft;
-  private int pos_strt;
-  private int pos_end;
-  private int pos_ws_rht;
-  private int linenm;
-  private int charnm;
+	private String ws_lft;
+	private String id;
+	private String ws_rht;
+	private int pos_ws_lft;
+	private int pos_strt;
+	private int pos_end;
+	private int pos_ws_rht;
+	private int linenm;
+	private int charnm;
 
-  public Token(
-      String id,
-      String ws_lft,
-      String ws_rht,
-      int pos_ws_lft,
-      int pos_strt,
-      int pos_end,
-      int pos_ws_rht,
-      int linenm,
-      int charnm) {
-    this.id = id;
-    this.ws_lft = ws_lft;
-    this.ws_rht = ws_rht;
-    this.pos_ws_lft = pos_ws_lft;
-    this.pos_strt = pos_strt;
-    this.pos_end = pos_end;
-    this.pos_ws_rht = pos_ws_rht;
-    this.linenm = linenm;
-    this.charnm = charnm;
-  }
+	public Token(String id, String ws_lft, String ws_rht, int pos_ws_lft,
+			int pos_strt, int pos_end, int pos_ws_rht, int linenm, int charnm) {
+		this.id = id;
+		this.ws_lft = ws_lft;
+		this.ws_rht = ws_rht;
+		this.pos_ws_lft = pos_ws_lft;
+		this.pos_strt = pos_strt;
+		this.pos_end = pos_end;
+		this.pos_ws_rht = pos_ws_rht;
+		this.linenm = linenm;
+		this.charnm = charnm;
+	}
 
-  public String toSource() {
-    return ws_lft.toString() + id.toString() + ws_rht.toString();
-  }
+	public String toSource() {
+		return ws_lft.toString() + id.toString() + ws_rht.toString();
+	}
 
-  public String toDebug() {
-    return linenm + ":" + charnm + ": " + id;
-  }
+	public String toDebug() {
+		return linenm + ":" + charnm + ": " + id;
+	}
 
-  public boolean isEmpty() {
-    return id.length() == 0;
-  }
+	public boolean isEmpty() {
+		return id.length() == 0;
+	}
 
-  public boolean isId(String s) {
-    return id.equals(s);
-  }
+	public boolean isId(String s) {
+		return id.equals(s);
+	}
 
-  public String id() {
-    return id;
-  }
+	public String id() {
+		return id;
+	}
 
-  public String sourcePos() {
-    return linenm + ":" + charnm;
-  }
+	public String sourcePos() {
+		return linenm + ":" + charnm;
+	}
 
-  public int totalNChars() {
-    return pos_ws_rht - pos_ws_lft;
-  }
+	public int totalNChars() {
+		return pos_ws_rht - pos_ws_lft;
+	}
+
+	public int getStartPos() {
+		return pos_strt;
+	}
+
+	public int getEndPos() {
+		return pos_end;
+	}
 }
 
 class Tokenizer {
-  private String src;
-  private int pos;
-  private int linenm = 1; // current line number
-  private int charnm = 1; // character number on current line
+	private String src;
+	private int pos;
+	private int linenm = 1; // current line number
+	private int charnm = 1; // character number on current line
 
-  public Tokenizer(String src) {
-    this.src = src;
-  }
+	public Tokenizer(String src) {
+		this.src = src;
+	}
 
-  public Token nextToken() {
-    int pos_ws_lft;
-    int pos_strt;
-    int pos_end;
-    int pos_ws_rht;
-    StringBuilder sb_ws_lft = new StringBuilder();
-    StringBuilder sb_id = new StringBuilder();
-    StringBuilder sb_ws_rht = new StringBuilder();
+	public Token nextToken() {
+		int pos_ws_lft;
+		int pos_strt;
+		int pos_end;
+		int pos_ws_rht;
+		StringBuilder sb_ws_lft = new StringBuilder();
+		StringBuilder sb_id = new StringBuilder();
+		StringBuilder sb_ws_rht = new StringBuilder();
 
-    int p = pos;
-    pos_ws_lft = p;
-    while (true) {
-      if (p == src.length()) break;
-      char ch = src.charAt(p);
-      if (Character.isWhitespace(ch)) {
-        sb_ws_lft.append(ch);
-        p++;
-        if (ch == '\n') {
-          linenm++;
-          charnm = 1;
-        } else {
-          charnm++;
-        }
-        continue;
-      }
-      break;
-    }
-    pos_strt = p;
-    int token_linenm = linenm;
-    int token_charnm = charnm;
-    while (true) {
-      if (p == src.length()) break;
-      char ch = src.charAt(p);
-      if (Character.isWhitespace(ch)) break;
-      sb_id.append(ch);
-      p++;
-      charnm++;
-      continue;
-    }
-    pos_end = p;
-    while (true) {
-      if (p == src.length()) break;
-      char ch = src.charAt(p);
-      if (Character.isWhitespace(ch)) {
-        sb_ws_rht.append(ch);
-        p++;
-        if (ch == '\n') {
-          linenm++;
-          charnm = 1;
-          break;
-        } else {
-          charnm++;
-        }
-        continue;
-      }
-      break;
-    }
-    pos_ws_rht = p;
-    pos = p;
-    Token tk =
-        new Token(
-            sb_id.toString(),
-            sb_ws_lft.toString(),
-            sb_ws_rht.toString(),
-            pos_ws_lft,
-            pos_strt,
-            pos_end,
-            pos_ws_rht,
-            token_linenm,
-            token_charnm);
-    return tk;
-  }
+		int p = pos;
+		pos_ws_lft = p;
+		while (true) {
+			if (p == src.length())
+				break;
+			char ch = src.charAt(p);
+			if (Character.isWhitespace(ch)) {
+				sb_ws_lft.append(ch);
+				p++;
+				if (ch == '\n') {
+					linenm++;
+					charnm = 1;
+				} else {
+					charnm++;
+				}
+				continue;
+			}
+			break;
+		}
+		pos_strt = p;
+		int token_linenm = linenm;
+		int token_charnm = charnm;
+		while (true) {
+			if (p == src.length())
+				break;
+			char ch = src.charAt(p);
+			if (Character.isWhitespace(ch))
+				break;
+			sb_id.append(ch);
+			p++;
+			charnm++;
+			continue;
+		}
+		pos_end = p;
+		while (true) {
+			if (p == src.length())
+				break;
+			char ch = src.charAt(p);
+			if (Character.isWhitespace(ch)) {
+				sb_ws_rht.append(ch);
+				p++;
+				if (ch == '\n') {
+					linenm++;
+					charnm = 1;
+					break;
+				} else {
+					charnm++;
+				}
+				continue;
+			}
+			break;
+		}
+		pos_ws_rht = p;
+		pos = p;
+		Token tk = new Token(sb_id.toString(), sb_ws_lft.toString(), sb_ws_rht.toString(), pos_ws_lft, pos_strt,
+				pos_end, pos_ws_rht, token_linenm, token_charnm);
+		return tk;
+	}
 
-  void pushBackToken(Token tk) {
-    int nchars = tk.totalNChars();
-    while (nchars-- != 0) {
-      pos--;
-      if (src.charAt(pos) == '\n') {
-        linenm--;
-        charnm = findCharNmInCurrentLine();
-      } else {
-        charnm--;
-      }
-    }
-  }
+	void pushBackToken(Token tk) {
+		int nchars = tk.totalNChars();
+		while (nchars-- != 0) {
+			pos--;
+			if (src.charAt(pos) == '\n') {
+				linenm--;
+				charnm = findCharNmInCurrentLine();
+			} else {
+				charnm--;
+			}
+		}
+	}
 
-  private int findCharNmInCurrentLine() {
-    // ldi r3 0x0001\nadd_
-    int n = 0;
-    int p = pos;
-    while (true) {
-      if (src.charAt(p) == '\n') {
-        return pos - p;
-      }
-      p--;
-      if (p == 0) {
-        return pos;
-      }
-    }
-  }
+	private int findCharNmInCurrentLine() {
+		// ldi r3 0x0001\nadd_
+		int p = pos;
+		while (true) {
+			if (src.charAt(p) == '\n') {
+				return pos - p;
+			}
+			p--;
+			if (p == 0) {
+				return pos;
+			}
+		}
+	}
 
-  public String readComment() {
-    StringBuilder sb = new StringBuilder();
-    while (true) {
-      if (pos != 0 && src.charAt(pos - 1) == '\n') {
-        // check if it is an empty comment. example: "ld 0x1234 r1 #\n"
-        // without this check the next line would be read as a comment
-        return "";
-      }
-      char ch = src.charAt(pos);
-      sb.append(ch);
-      pos++;
-      charnm++;
-      if (pos == src.length()) {
-        return sb.toString();
-      }
-      if (ch == '\n') {
-        linenm++;
-        charnm = 1;
-        return sb.toString();
-      }
-    }
-  }
+	public String readComment() {
+		StringBuilder sb = new StringBuilder();
+		while (true) {
+			if (pos != 0 && src.charAt(pos - 1) == '\n') {
+				// check if it is an empty comment. example: "ld 0x1234 r1 #\n"
+				// without this check the next line would be read as a comment
+				return "";
+			}
+			char ch = src.charAt(pos);
+			sb.append(ch);
+			pos++;
+			charnm++;
+			if (pos == src.length()) {
+				return sb.toString();
+			}
+			if (ch == '\n') {
+				linenm++;
+				charnm = 1;
+				return sb.toString();
+			}
+		}
+	}
 }

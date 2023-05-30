@@ -48,8 +48,10 @@ lbl1:
     addi 1 r8 ret
 endfunc
 
-@ 0x0040 x0040:
-    jmp x0040
+@ 0x0040 x0040: func
+    loop:
+    jmp loop
+endfunc
 
 @ 0x0050 x0050: func
     call x0060
