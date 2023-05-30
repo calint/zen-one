@@ -172,15 +172,17 @@ wire alu_nf;
 // result of 'alu_operand_a' OP 'alu_operand_b'
 wire [REGS_WIDTH-1:0] alu_result;
 
+// when the OP_IO_READ / OP_IO_WRITE stalls the pipeline then current
+// instruction might trigger writes to registers and ram
+reg is_uart_stall;
+
 //
 // Registers (part two)
 //
 
 // write enable
 wire regs_we = 
-    is_alu_op ||
-    was_do_op && is_ldi || 
-    urx_wb; // if uart wants to write recieved data
+    urx_wb || !is_uart_stall && (is_alu_op || was_do_op && is_ldi); 
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
@@ -193,7 +195,7 @@ wire [REGS_WIDTH-1:0] regs_wd =
 //
 
 // enable write if 'st'
-assign ram_wea = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
+assign ram_wea = !is_uart_stall && is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 // address to write
 assign ram_addra = 
@@ -253,6 +255,7 @@ always @(posedge clk) begin
         urx_reg_dat <= 0;
         urx_reg_hilo <= 0;
         urx_wb <= 0;
+        is_uart_stall <= 0;
     end else begin
     
         urx_wb <= 0; // disable writing 'urx_reg_dat'
@@ -300,26 +303,40 @@ always @(posedge clk) begin
 
                         OP_IO_READ: begin // receive blocking
                             urx_reg <= regb; // save 'regb' to be used at write register
-                            urx_reg_dat <= regb_dat; // save current value of 'regb'
+                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
+                                urx_reg_dat <= ram_doa;
+                            end else begin
+                                urx_reg_dat <= regb_dat; // save current value of 'regb'
+                            end
                             urx_reg_hilo <= rega[3]; // save if read is to lower or higher 8 bits of 'urx_reg_dat'
                             urx_go <= 1; // enable start read
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
+                            is_uart_stall <= 1;
                             stp <= STP_UART_READ;
                         end 
                         
                         OP_IO_WRITE: begin // send blocking
-                            utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
+                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
+                                utx_dat <= rega[3] ? ram_doa[15:8] : ram_doa[7:0];
+                            end else begin
+                                utx_dat <= rega[3] ? regb_dat[15:8] : regb_dat[7:0]; // select the lower or higher bits to send
+                            end
                             utx_go <= 1; // enable start of write
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
+                            is_uart_stall <= 1;
                             stp <= STP_UART_WRITE;
                         end                       
                         
                         OP_IO_LED: begin // led and ledi
-                            led <= rega[3] ? regb : regb_dat[3:0];
+                            if (was_ld && ld_reg == regb) begin // pipeline hazard resolution
+                                led <= rega[3] ? regb : ram_doa[3:0];
+                            end else begin
+                                led <= rega[3] ? regb : regb_dat[3:0];
+                            end
                         end
 
                         endcase
@@ -366,6 +383,7 @@ always @(posedge clk) begin
             if (!utx_bsy) begin
                 utx_go <= 0; // acknowledge that the write is done
                 pc <= pc + 1;
+                is_uart_stall <= 0;
                 stp <= STP_EXECUTE;
             end
         end
@@ -385,6 +403,7 @@ always @(posedge clk) begin
         
         STP_UART_READ_WB: begin // OP_IO_READ: one cycle to write back the register
             pc <= pc + 1;
+            is_uart_stall <= 0;
             stp <= STP_EXECUTE;
         end
         
