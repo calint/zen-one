@@ -347,6 +347,7 @@
       </Config>
     </FileSet>
     <FileSet Name="sim_5" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_5" RelGenDir="$PGENDIR/sim_5">
+      <Filter Type="Srcs"/>
       <File Path="$PSRCDIR/sim_5/new/TB_Top.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>

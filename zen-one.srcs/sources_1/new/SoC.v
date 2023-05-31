@@ -39,7 +39,7 @@ Top #(
     .CLK_FREQ(CLK_FREQ),
     .BAUD_RATE(BAUD_RATE)
 ) top (
-    .reset(!clk_locked),
+    .reset(!clk_locked || reset),
     .clk_in(clk),
     .uart_tx(uart_tx),
     .uart_rx(uart_rx),
