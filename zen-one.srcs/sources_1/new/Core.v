@@ -174,6 +174,7 @@ wire [REGS_WIDTH-1:0] alu_result;
 
 // when the OP_IO_READ / OP_IO_WRITE stalls the pipeline then current
 // instruction might trigger writes to registers and ram
+// enabled while in a read / write uart op
 reg is_uart_stall;
 
 //
@@ -182,13 +183,16 @@ reg is_uart_stall;
 
 // write enable
 wire regs_we = 
-    urx_wb || !is_uart_stall && (is_alu_op || was_do_op && is_ldi); 
+    // if OP_IO_READ is finished and wants to write
+    urx_wb ||
+    // if not in OP_IO_READ or OP_IO_WRITE
+    !is_uart_stall && (is_alu_op || was_do_op && is_ldi); 
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
-    urx_wb ? urx_reg_dat :
-    was_do_op && is_ldi ? instr :
-    alu_result;
+    urx_wb ? urx_reg_dat : //     // if OP_IO_READ has received a byte
+    was_do_op && is_ldi ? instr : // load immediate 16 data
+    alu_result; // otherwise alu
 
 //
 // RAM
