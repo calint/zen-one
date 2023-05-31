@@ -7,8 +7,10 @@
 // loop:           
 //     rl r1       # read lower 8 bits into r1
 1633 // [1] 7:5
+//     addi 1 r2   # bug check
+2013 // [2] 8:5
 //     rh r1       # read upper 8 bits into r1
-1E33 // [2] 8:5
+1E33 // [3] 9:5
 //     jmp loop
-FFEF // [3] 9:5
+FFDF // [4] 10:5
 

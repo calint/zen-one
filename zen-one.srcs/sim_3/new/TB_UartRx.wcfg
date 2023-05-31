@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="0.000 ns"></ZoomStartTime>
-      <ZoomEndTime time="313.601 ns"></ZoomEndTime>
-      <Cursor1Time time="215.000 ns"></Cursor1Time>
+      <ZoomStartTime time="428.400 ns"></ZoomStartTime>
+      <ZoomEndTime time="639.201 ns"></ZoomEndTime>
+      <Cursor1Time time="525.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="157"></NameColumnWidth>
-      <ValueColumnWidth column_width="80"></ValueColumnWidth>
+      <ValueColumnWidth column_width="76"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="13" />
+   <WVObjectSize size="14" />
    <wvobject type="logic" fp_name="/TB_UartRx/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -34,8 +34,8 @@
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/TB_UartRx/top/core/stp">
-      <obj_property name="ElementShortName">stp[3:0]</obj_property>
-      <obj_property name="ObjectShortName">stp[3:0]</obj_property>
+      <obj_property name="ElementShortName">stp[2:0]</obj_property>
+      <obj_property name="ObjectShortName">stp[2:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/TB_UartRx/top/core/instr">
       <obj_property name="ElementShortName">instr[15:0]</obj_property>
@@ -69,6 +69,10 @@
    <wvobject type="logic" fp_name="/TB_UartRx/top/core/regs_we">
       <obj_property name="ElementShortName">regs_we</obj_property>
       <obj_property name="ObjectShortName">regs_we</obj_property>
+   </wvobject>
+   <wvobject type="logic" fp_name="/TB_UartRx/top/core/urx_wb">
+      <obj_property name="ElementShortName">urx_wb</obj_property>
+      <obj_property name="ObjectShortName">urx_wb</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/TB_UartRx/top/core/urx_reg_hilo">
       <obj_property name="ElementShortName">urx_reg_hilo</obj_property>

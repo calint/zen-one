@@ -5,5 +5,6 @@ ledi 0b1000     # a nop-like instruction that runs multiple times while the pipe
 
 loop:           
     rl r1       # read lower 8 bits into r1
+    addi 1 r2   # bug check
     rh r1       # read upper 8 bits into r1
     jmp loop

@@ -63,13 +63,17 @@ initial begin
     for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
     uart_rx = 1; // idle
     
+    // bugcheck: the instruction below is in the pipe and should not trigger write data to register from alu op
+    // addi 1 r2   # bug check
+    // 2013 // [2] 8:5
     #clk_tk // wait for register to be written
-    #clk_tk 
     if (top.core.regs.mem[1]==16'b0101_0101) $display("case 1 passed"); else $display("case 1 FAILED");
 
+    // here the read data 0x0055 whould be written to r1
     #clk_tk
-    #clk_tk
-    #clk_tk
+    // here the 'addi r1 r2' should write back
+    if (top.core.regs.mem[2]==1) $display("case 2 passed"); else $display("case 2 FAILED");
+
     #clk_tk
 
     // receive 0b0101_0101
@@ -98,13 +102,7 @@ initial begin
     uart_rx = 1; // idle
     
     #clk_tk // wait for register to be written
-    #clk_tk 
-    if (top.core.regs.mem[1]==16'b1010_1010_0101_0101) $display("case 2 passed"); else $display("case 2 FAILED");
-
-    #clk_tk
-    #clk_tk
-    #clk_tk
-    #clk_tk
+    if (top.core.regs.mem[1]==16'b1010_1010_0101_0101) $display("case 3 passed"); else $display("case 3 FAILED");
 
     $finish;
 end

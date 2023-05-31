@@ -93,10 +93,10 @@ wire is_jmp = instr_c && instr_r;
 wire [3:0] instr_op = instr[7:4];
 wire [3:0] rega = instr[11:8];
 wire [3:0] regb =
-    // if in the second cycle of 'ldi'
-    was_do_op && is_ldi ? ldi_reg :
     // if OP_IO_READ write back
     urx_wb ? urx_reg : 
+    // if in the second cycle of 'ldi'
+    was_do_op && is_ldi ? ldi_reg :
     // the register specified by the instruction
     instr[15:12];
 wire [11:0] imm12 = instr[15:4];
@@ -186,9 +186,9 @@ wire regs_we =
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
-    is_alu_op ? alu_result :
+    urx_wb ? urx_reg_dat :
     was_do_op && is_ldi ? instr :
-    urx_reg_dat;
+    alu_result;
 
 //
 // RAM
@@ -251,7 +251,6 @@ always @(posedge clk) begin
         is_uart_stall <= 0;
     end else begin
     
-        urx_wb <= 0; // disable writing 'urx_reg_dat'
         is_bubble <= 0; // disable flag if set in previous instruction
         was_ld <= 0;
         
@@ -384,6 +383,7 @@ always @(posedge clk) begin
         
         STP_UART_READ_WB: begin // OP_IO_READ: one cycle to write back the register
             pc <= pc + 1;
+            urx_wb <= 0;
             is_uart_stall <= 0;
             stp <= STP_EXECUTE;
         end

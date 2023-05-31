@@ -34,20 +34,20 @@ initial begin
 
     #clk_tk
     #clk_tk
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
     #clk_tk
     #clk_tk
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
-    #clk_tk;
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
+    #clk_tk
     #1000;
     $finish;
 end
