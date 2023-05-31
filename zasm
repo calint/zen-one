@@ -768,10 +768,14 @@ class Statement {
 	}
 
 	public static short registerAddressFromToken(Token addr) throws Throwable {
+		if (!addr.id().startsWith("r"))
+			throw new Exception(
+				addr.sourcePos() + ": register '" + addr.id() + "' is not valid. valid registers 'r0' through 'r15'");
+
 		short a = Short.parseShort(addr.id().substring(1));
 		if (a < 0 || a > 15) {
 			throw new Exception(
-					addr.sourcePos() + ": unknown register '" + addr.id() + "'. valid registers 'r0' through 'r15'");
+					addr.sourcePos() + ": unknown register '" + addr.id() + "'. valid registers are 'r0' through 'r15'");
 		}
 		return a;
 	}
