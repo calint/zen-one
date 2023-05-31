@@ -191,7 +191,7 @@ wire regs_we =
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
     urx_wb ? urx_reg_dat : //     // if OP_IO_READ has received a byte
-    was_do_op && is_ldi ? instr : // load immediate 16 data
+    was_do_op && is_ldi ? instr : // load immediate 16 bit data
     alu_result; // otherwise alu
 
 //
@@ -214,7 +214,7 @@ assign ram_dia =  regb_dat;
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
 // enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
 wire zn_sel = cs_ret;
-// enabled if flags should be cleared
+// enabled if flags should be cleared, has precedence over 'zn_sel'
 wire zn_clr = cs_call;
 
 //
