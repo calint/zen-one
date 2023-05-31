@@ -1,12 +1,13 @@
-ledi 0b1000
-xor r15 r15          # zero r15
+ledi 0b1000          # due to pipeline the first instruction must be a 'nop'
+                     #  like instruction which might run several times
+xor r15 r15          # zero r15, a counter
 loop:
     ldi hello.len r2 # hello
     ld r2 r2         # load len
     ldi hello.buf r1 # buffer 
     call print       #
     
-    addi 1 r15
+    addi 1 r15       # increment r15 by 1
     cp r15 r1        # print r15 as hex
     call print_hex   #
     ldi 0x20 r1      # space
@@ -24,17 +25,17 @@ loop:
     jmp loop
 
 input: func # r1: bufptr, r2: buflen  clobbers: r2, r3, r4, r5, r6, r7, r8, r9, r10
-    ldi 0x000d r3
-    ldi 0x0d00 r4
-    ldi 0x00ff r5
-    ldi 0xff00 r6
-    cp r1 r10
-    xor r9 r9
+    ldi 0x000d r3    # '\r' to compare with low byte
+    ldi 0x0d00 r4    # '\r' to compare with high byte
+    ldi 0x00ff r5    # low byte mask
+    ldi 0xff00 r6    # high byte mask
+    cp r1 r10        # don't modify r1, use r10 instead
+    xor r9 r9        # zero r9 which is the number of bytes read
     loop:
         # read the low byte
         rl r7        # read into lower r7
         wl r7        # echo
-        addi 1 r9    # increment length
+        addi 1 r9    # increment number of bytes read
         st r10 r7    # store r7 to buffer
         cp r7 r8     # check
         and r5 r8    #  if
@@ -46,7 +47,7 @@ input: func # r1: bufptr, r2: buflen  clobbers: r2, r3, r4, r5, r6, r7, r8, r9, 
         # read the high byte
         rh r7        # read into higher r7
         wh r7        # echo
-        addi 1 r9    # increment length
+        addi 1 r9    # increment number of bytes read
         st r10 r7    # store r7 to buffer
         cp r7 r8     # check
         and r6 r8    #  if
@@ -58,7 +59,7 @@ input: func # r1: bufptr, r2: buflen  clobbers: r2, r3, r4, r5, r6, r7, r8, r9, 
         addi 1 r10   # increment buffer pointer
         jmp loop     # 
     done:            # 
-    cp r9 r2 ret     # 
+    cp r9 r2 ret     # copy the number of read bytes into r2 as return
 endfunc
 
 print: func # r1: strptr, r2: strlen   clobbers: r1, r3, r4
@@ -67,18 +68,18 @@ print: func # r1: strptr, r2: strlen   clobbers: r1, r3, r4
     ifz jmp done         # if 0 then just one character
     shf 1 r3             # divide even length by 2
     loop:            
-        ld r1 r4     
-        wl r4        
-        wh r4         
-        addi 1 r1     
-        addi -1 r3    
-        ifp jmp loop  
+        ld r1 r4         # load ram att address r1 to r4
+        wl r4            # write the low byte
+        wh r4            # write the high byte
+        addi 1 r1        # next 2 bytes
+        addi -1 r3       # decrement the number of bytes couple to print
+        ifp jmp loop     # if not zero continue
     done:                
     addi 1 r3            # reusing r3 which is now 0
     and r2 r3            # find out if there is one more character in next word
     ifz cp r3 r3  ret    # nop and return if no trailing character
     ld r1 r4             # write the
-    wl r4  ret           #   last character
+    wl r4  ret           #   last character and return
 endfunc
 
 print_hex: func # r1: number   clobbers: r2 r3 r4 r5 r6 r7

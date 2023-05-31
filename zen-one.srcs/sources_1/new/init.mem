@@ -1,77 +1,77 @@
-// addi 1 r15
-F013 // [0] 1:1
-// led r15
-F733 // [1] 2:1
-// xor r15 r15          # zero r15
-FF63 // [2] 3:1
+// ledi 0b1000          # due to pipeline the first instruction must be a 'nop'
+8F33 // [0] 1:1
+//                      #  like instruction which might run several times
+// xor r15 r15          # zero r15, a counter
+FF63 // [1] 3:1
 // loop:
 //     ldi hello.len r2 # hello
-2033 // [3] 5:5
-0096 // [4] 5:5
+2033 // [2] 5:5
+0096 // [3] 5:5
 //     ld r2 r2         # load len
-2253 // [5] 6:5
+2253 // [4] 6:5
 //     ldi hello.buf r1 # buffer 
-1033 // [6] 7:5
-0097 // [7] 7:5
+1033 // [5] 7:5
+0097 // [6] 7:5
 //     call print       #
-005B // [8] 8:5
+005B // [7] 8:5
 //     
-//     addi 1 r15
-F013 // [9] 10:5
+//     addi 1 r15       # increment r15 by 1
+F013 // [8] 10:5
 //     cp r15 r1        # print r15 as hex
-1FC3 // [10] 11:5
+1FC3 // [9] 11:5
 //     call print_hex   #
-006B // [11] 12:5
+006B // [10] 12:5
 //     ldi 0x20 r1      # space
-1033 // [12] 13:5
-0020 // [13] 13:5
+1033 // [11] 13:5
+0020 // [12] 13:5
 //     wl r1            #
-1233 // [14] 14:5
+1233 // [13] 14:5
 //     
 //     ldi input.buf r1 # input buffer
-1033 // [15] 16:5
-009B // [16] 16:5
+1033 // [14] 16:5
+009B // [15] 16:5
 //     ldi input.len r2 # buffer size address
-2033 // [17] 17:5
-009A // [18] 17:5
+2033 // [16] 17:5
+009A // [17] 17:5
 //     ld r2 r2         # buffer size
-2253 // [19] 18:5
+2253 // [18] 18:5
 //     call input       # input (buffer:r1, buflen:r2)
-002B // [20] 19:5
+002B // [19] 19:5
 //     ldi 0xa r3       # new line
-3033 // [21] 20:5
-000A // [22] 20:5
+3033 // [20] 20:5
+000A // [21] 20:5
 //     wl r3            #  send
-3233 // [23] 21:5
+3233 // [22] 21:5
 //     call print       # print (buffer:r1, buflen:r2) 'input' sets buflen 
-005B // [24] 22:5
+005B // [23] 22:5
 //     ldi 0xa r3       # new line
-3033 // [25] 23:5
-000A // [26] 23:5
+3033 // [24] 23:5
+000A // [25] 23:5
 //     wl r3            #  send
-3233 // [27] 24:5
+3233 // [26] 24:5
 //     jmp loop
-FE7F // [28] 25:5
+FE7F // [27] 25:5
+0000
 0000
 0000
 0000
 // 
 // input: func # r1: bufptr, r2: buflen  clobbers: r2, r3, r4, r5, r6, r7, r8, r9, r10
-//     ldi 0x000d r3
+//     ldi 0x000d r3    # '\r' to compare with low byte
 3033 // [32] 28:5
 000D // [33] 28:5
-//     ldi 0x0d00 r4
+//     ldi 0x0d00 r4    # '\r' to compare with high byte
 4033 // [34] 29:5
 0D00 // [35] 29:5
-//     ldi 0x00ff r5
+//     ldi 0x00ff r5    # low byte mask
 5033 // [36] 30:5
 00FF // [37] 30:5
-//     ldi 0xff00 r6
+//     ldi 0xff00 r6    # high byte mask
 6033 // [38] 31:5
 FF00 // [39] 31:5
-//     cp r1 r10
+//     cp r1 r10        # don't modify r1, use r10 instead
 A1C3 // [40] 32:5
-//     xor r9 r9
+//     xor r9 r9        # zero r9 which is the number of bytes read
 9963 // [41] 33:5
 //     loop:
 //         # read the low byte
@@ -79,7 +79,7 @@ A1C3 // [40] 32:5
 7633 // [42] 36:9
 //         wl r7        # echo
 7233 // [43] 37:9
-//         addi 1 r9    # increment length
+//         addi 1 r9    # increment number of bytes read
 9013 // [44] 38:9
 //         st r10 r7    # store r7 to buffer
 7A73 // [45] 39:9
@@ -101,7 +101,7 @@ A1C3 // [40] 32:5
 7E33 // [52] 48:9
 //         wh r7        # echo
 7A33 // [53] 49:9
-//         addi 1 r9    # increment length
+//         addi 1 r9    # increment number of bytes read
 9013 // [54] 50:9
 //         st r10 r7    # store r7 to buffer
 7A73 // [55] 51:9
@@ -123,7 +123,7 @@ A013 // [62] 59:9
 //         jmp loop     # 
 FEBF // [63] 60:9
 //     done:            # 
-//     cp r9 r2 ret     # 
+//     cp r9 r2 ret     # copy the number of read bytes into r2 as return
 29C7 // [64] 62:5
 0000
 0000
@@ -153,17 +153,17 @@ FFFE // [81] 66:5
 //     shf 1 r3             # divide even length by 2
 30E3 // [84] 69:5
 //     loop:            
-//         ld r1 r4     
+//         ld r1 r4         # load ram att address r1 to r4
 4153 // [85] 71:9
-//         wl r4        
+//         wl r4            # write the low byte
 4233 // [86] 72:9
-//         wh r4         
+//         wh r4            # write the high byte
 4A33 // [87] 73:9
-//         addi 1 r1     
+//         addi 1 r1        # next 2 bytes
 1013 // [88] 74:9
-//         addi -1 r3    
+//         addi -1 r3       # decrement the number of bytes couple to print
 3F13 // [89] 75:9
-//         ifp jmp loop  
+//         ifp jmp loop     # if not zero continue
 FFBC // [90] 76:9
 //     done:                
 //     addi 1 r3            # reusing r3 which is now 0
@@ -174,7 +174,7 @@ FFBC // [90] 76:9
 33C5 // [93] 80:5
 //     ld r1 r4             # write the
 4153 // [94] 81:5
-//     wl r4  ret           #   last character
+//     wl r4  ret           #   last character and return
 4237 // [95] 82:5
 // endfunc
 // 

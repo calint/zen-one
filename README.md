@@ -120,6 +120,6 @@ how-to with Vivado v2023.1:
  
 programming zen-x
  * use 'zasm' to compile assembler code
- * see 'notes/zasm-samples/' for examples.
+ * see 'zen-one.srcs/sources_1/new/init.zasm' for examples
 
 ```
