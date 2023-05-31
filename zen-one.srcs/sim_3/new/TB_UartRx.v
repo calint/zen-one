@@ -38,6 +38,8 @@ initial begin
 
     #(clk_tk*10); // some cycles to enter the read uart
     
+    // rl r1       # read lower 8 bits into r1
+    // 1633 // [1] 7:5
     // receive 0b0101_0101
     uart_rx = 1; // idle
     for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
@@ -76,6 +78,9 @@ initial begin
 
     #clk_tk
 
+    // rh r1       # read upper 8 bits into r1
+    // 1E33 // [3] 9:5
+    // note. instruction 'jmp loop' is in context
     // receive 0b0101_0101
     uart_rx = 1; // idle
     for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
@@ -139,6 +144,14 @@ initial begin
 
     #clk_tk // wait for register to be written
     if (top.core.regs.mem[1]==16'b1010_1010_1010_0100) $display("case 4 passed"); else $display("case 4 FAILED");
+
+    // addi 1 r2   # bug check
+    // 2013 // [2] 8:5
+    #clk_tk // wait for register to be written
+    if (top.core.regs.mem[2]==2) $display("case 5 passed"); else $display("case 5 FAILED");
+    
+    // rh r1       # read upper 8 bits into r1
+    // 1E33 // [3] 9:5
     
     $finish;
 end
