@@ -104,6 +104,42 @@ initial begin
     #clk_tk // wait for register to be written
     if (top.core.regs.mem[1]==16'b1010_1010_0101_0101) $display("case 3 passed"); else $display("case 3 FAILED");
 
+    // jmp loop
+    // FFDF // [4] 10:5
+    #clk_tk
+    #clk_tk // bubble
+    
+    // rl r1       # read lower 8 bits into r1
+    // 1633 // [1] 7:5
+
+    // receive 0xa4 0b1010_0100
+    uart_rx = 1; // idle
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0; // start bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // stop bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // idle    
+
+    #clk_tk // wait for register to be written
+    if (top.core.regs.mem[1]==16'b1010_1010_1010_0100) $display("case 4 passed"); else $display("case 4 FAILED");
+    
     $finish;
 end
 
