@@ -154,6 +154,7 @@ wire [REGS_WIDTH-1:0] rega_dat =
     was_ld && ld_reg == rega ? ram_doa : regs_rd1;
 wire [REGS_WIDTH-1:0] regb_dat = 
     was_ld && ld_reg == regb ? ram_doa : regs_rd2;
+
 //
 // ALU
 //
