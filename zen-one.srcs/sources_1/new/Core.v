@@ -198,10 +198,11 @@ wire [REGS_WIDTH-1:0] regs_wd =
 //
 
 // enable write if 'st'
-assign ram_wea = !is_stall && is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
+assign ram_wea = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 // address to write
 assign ram_addra = rega_dat;
+
 // data to write
 assign ram_dia =  regb_dat;
 
@@ -343,9 +344,9 @@ always @(posedge clk) begin
                     end // if (instr_op == OP_LDI && rega != 0)
                 end // if (is_jmp)
             end else begin // else of if (is_do_op)
-                // if 'ldi' enable 'is_ldi' so that data part of the 
+                // if 'ldi' enable 'is_ldi' so the data part of the 
                 //  'ldi' does not get interpreted as an instruction
-                if (!is_stall && instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
+                if (instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
                     is_ldi <= 1;
                     stp <= STP_LDI;
                 end

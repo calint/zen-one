@@ -158,16 +158,51 @@ initial begin
     #clk_tk
     if (top.core.regs.mem[4]==16'b1111_1111) $display("case 4 passed"); else $display("case 4 FAILED");
 
+    // rl r5           # test bench sends 0x0001
+    // 5633 // [5] 8:1
+    #clk_tk
+
+    // receive 0b0000_0001
+    uart_rx = 1; // idle
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0; // start bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 0;    
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // stop bit
+    for (i = 0; i < UART_TICKS_PER_BIT; i = i + 1) #clk_tk;
+    uart_rx = 1; // idle
+    
+    // uart writes reg
+    #clk_tk
+    if (top.core.regs.mem[5]==1) $display("case 5 passed"); else $display("case 5 FAILED");
+
+    // st r2 r5        # ram[2]=1
+    // 5273 // [6] 9:1
+    #clk_tk
+    if (top.ram.ram[2]==1) $display("case 6 passed"); else $display("case 6 FAILED");
+
     // end:
     // jmp end
-    // 000F // [5] 8:5
+    // 000F // [7] 12:5
     #clk_tk
     #clk_tk // bubble
-    
-    // jmp end
-    // 000F // [5] 8:5
     // note. pc is one step ahead of current instruction
-    if (top.core.pc==6) $display("case 5 passed"); else $display("case 5 FAILED");
+    if (top.core.pc==8) $display("case 7 passed"); else $display("case 7 FAILED");
     
     $finish;
 end

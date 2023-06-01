@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="416.900 ns"></ZoomStartTime>
-      <ZoomEndTime time="520.001 ns"></ZoomEndTime>
-      <Cursor1Time time="505.000 ns"></Cursor1Time>
+      <ZoomStartTime time="1,041.075 ns"></ZoomStartTime>
+      <ZoomEndTime time="1,183.598 ns"></ZoomEndTime>
+      <Cursor1Time time="1,225.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="121"></NameColumnWidth>
-      <ValueColumnWidth column_width="107"></ValueColumnWidth>
+      <ValueColumnWidth column_width="99"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="23" />
+   <WVObjectSize size="25" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -61,9 +61,17 @@
       <obj_property name="ElementShortName">is_bubble</obj_property>
       <obj_property name="ObjectShortName">is_bubble</obj_property>
    </wvobject>
+   <wvobject type="logic" fp_name="/TB_Top/top/core/ram_wea">
+      <obj_property name="ElementShortName">ram_wea</obj_property>
+      <obj_property name="ObjectShortName">ram_wea</obj_property>
+   </wvobject>
    <wvobject type="array" fp_name="/TB_Top/top/ram_addra">
       <obj_property name="ElementShortName">ram_addra[15:0]</obj_property>
       <obj_property name="ObjectShortName">ram_addra[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_Top/top/core/ram_dia">
+      <obj_property name="ElementShortName">ram_dia[15:0]</obj_property>
+      <obj_property name="ObjectShortName">ram_dia[15:0]</obj_property>
    </wvobject>
    <wvobject type="array" fp_name="/TB_Top/top/core/rega">
       <obj_property name="ElementShortName">rega[3:0]</obj_property>

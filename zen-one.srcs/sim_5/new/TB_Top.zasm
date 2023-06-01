@@ -4,6 +4,10 @@ rl r1
 ldi 0x0002 r2
 
 call foo
+
+rl r5           # test bench sends 0x0001
+st r2 r5        # ram[2]=1
+
 end:
     jmp end
 
