@@ -183,9 +183,9 @@ wire [REGS_WIDTH-1:0] alu_result;
 
 // write enable
 wire regs_we = 
-    // if OP_IO_READ is finished and wants to write
-    urx_wb || // OP_IO_READ is in stall while wanting to write to register
-    !is_stall && (is_alu_op || was_do_op && is_ldi); 
+    urx_wb || // if OP_IO_READ is finished and wants to write
+    was_do_op && is_ldi ||
+    is_alu_op; 
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
