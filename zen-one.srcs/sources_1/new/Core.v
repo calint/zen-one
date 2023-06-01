@@ -43,7 +43,7 @@ localparam ALU_XOR = 3'b011; // bitwise xor 'rega' to 'regb'
 localparam ALU_AND = 3'b100; // bitwise and 'rega' to 'regb'
 localparam ALU_NOT = 3'b101; // bitwise not 'rega' to 'regb'
 localparam ALU_CP  = 3'b110; // copy 'rega' to 'regb'
-localparam ALU_SHF = 3'b111; // shift immediate signed 4 bits value of 'regb' where imm4>=0?++imm4:-imm4
+localparam ALU_SHF = 3'b111; // shift 'regb'
 
 //
 // load immediate (ldi)
@@ -199,10 +199,8 @@ wire [REGS_WIDTH-1:0] regs_wd =
 
 // enable write if 'st'
 assign ram_wea = is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
-
 // address to write
 assign ram_addra = rega_dat;
-
 // data to write
 assign ram_dia =  regb_dat;
 
@@ -259,7 +257,6 @@ always @(posedge clk) begin
         was_ld <= 0;
         
         if (cs_ret) begin
-            //$display("***** cs_ret %0d", cs_pc_out);
             pc <= cs_pc_out;
             // next instruction in the pipeline should be ignored
             is_bubble <= 1;
@@ -305,7 +302,7 @@ always @(posedge clk) begin
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
-                            is_stall <= 1;
+                            is_stall <= 1; // stall the pipeline
                             stp <= STP_UART_READ;
                         end 
                         
@@ -315,7 +312,7 @@ always @(posedge clk) begin
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
-                            is_stall <= 1;
+                            is_stall <= 1; // stall the pipeline
                             stp <= STP_UART_WRITE;
                         end                       
                         
@@ -379,7 +376,7 @@ always @(posedge clk) begin
                 end else begin
                     urx_reg_dat[7:0] <= urx_dat; // write the low byte
                 end
-                urx_go <= 0; // acknowledge the ready data has been read
+                urx_go <= 0; // acknowledge that ready data has been read
                 urx_wb <= 1; // enable write of 'urx_reg_dat' to 'urx_reg'
                 stp <= STP_UART_READ_WB;
             end
