@@ -184,13 +184,13 @@ wire [REGS_WIDTH-1:0] alu_result;
 // write enable
 wire regs_we = 
     // if OP_IO_READ is finished and wants to write
-    urx_wb ||
-    // if not in OP_IO_READ or OP_IO_WRITE
+    urx_wb || // OP_IO_READ is in stall while wanting to write to register
+    // if not stalling and not in OP_IO_READ or OP_IO_WRITE
     !is_stall && (is_alu_op || was_do_op && is_ldi); 
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
-    urx_wb ? urx_reg_dat : //     // if OP_IO_READ has received a byte
+    urx_wb ? urx_reg_dat : // if OP_IO_READ has received a byte
     was_do_op && is_ldi ? instr : // load immediate 16 bit data
     alu_result; // otherwise alu
 
