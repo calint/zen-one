@@ -1,96 +1,17 @@
-addi 1 r0
-led r0
+ledi 0b1000         # start pipeline with nop like instruction
 
-loop:
-    ldi hello.len r2 # hello
-    ld r2 r2         # load len
-    ldi hello.buf r1 # buffer 
-    call print
-    
-    ldi input.buf r1 # input buffer
-    ldi input.len r2 # buffer size address
-    ld r2 r2         # buffer size
-    call input       # input (buffer:r1, buflen:r2)
-    ldi 0xa r3       # new line
-    wl r3            #  send
-    call print       # print (buffer:r1, buflen:r2) 'input' sets buflen 
-    ldi 0xa r3       # new line
-    wl r3            #  send
-    jmp loop
+rl r1
+ldi 0x0002 r2
 
-input: func # r1: bufptr, r2: buflen  clobbers: r2, r3, r4, r5, r6, r7, r8, r9, r10
-    ldi 0x000d r3
-    ldi 0x0d00 r4
-    ldi 0x00ff r5
-    ldi 0xff00 r6
-    cp r1 r10
-    xor r9 r9
-    loop:
-        # read the low byte
-        rl r7        # read into lower r7
-        wl r7        # echo
-        addi 1 r9    # increment length
-        st r10 r7    # store r7 to buffer
-        cp r7 r8     # check
-        and r5 r8    #  if
-        xor r3 r8    #   carriage return
-        ifz jmp done # if true then done
-        addi -1 r2   # decrement buflen
-        ifz jmp done # if zero then buffer full
+call foo
+end:
+    jmp end
 
-        # read the high byte
-        rh r7        # read into higher r7
-        wh r7        # echo
-        addi 1 r9    # increment length
-        st r10 r7    # store r7 to buffer
-        cp r7 r8     # check
-        and r6 r8    #  if
-        xor r4 r8    #   carriage return
-        ifz jmp done # if true then done
-        addi -1 r2   # decrement buflen
-        ifz jmp done # if zero then buffer full
-
-        addi 1 r10   # increment buffer pointer
-        jmp loop     # 
-    done:            # 
-    cp r9 r2 ret     # 
+@ 0x020 foo: func
+    call bar
+    rl r4  ret
 endfunc
 
-print: func # r1: strptr, r2: strlen   clobbers: r1, r3, r4
-    ldi 0xfffe r3        
-    and r2 r3            # get number of words containing 2 characters each
-    ifz jmp done         # if 0 then just one character
-    shf 1 r3             # divide even length by 2
-    loop:            
-        ld r1 r4     
-        wl r4        
-        wh r4         
-        addi 1 r1     
-        addi -1 r3    
-        ifp jmp loop  
-    done:                
-    addi 1 r3            # reusing r3 which is now 0
-    and r2 r3            # find out if there is one more character in next word
-    ifz cp r3 r3  ret    # nop and return if no trailing character
-    ld r1 r4             # write the
-    wl r4  ret           #   last character
+@ 0x040 bar: func
+    rl r3  ret
 endfunc
-
-hello.len: 6
-hello.buf:
-    0x4548 # 'EH'
-    0x4c4c # 'LL'
-    0x204f # ' O'
-
-input.len: 64
-input.buf:
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-    0 0 0 0 0 0 0 0
-    

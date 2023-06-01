@@ -111,12 +111,17 @@ wire zn_zf;
 wire zn_nf;
 
 // enabled when the current instruction is not valid because of previous 
-// instruction being a 'jmp' or 'call'. in that case the next instruction
-// in the pipeline should not be executed
+//  instruction being a 'jmp' or 'call'. in that case the next instruction
+//   in the pipeline should not be executed
 reg is_bubble;
 
+// when the OP_IO_READ / OP_IO_WRITE stalls the pipeline then current
+//  instruction might trigger writes to registers and ram
+// enabled while in a read / write uart op
+reg is_stall;
+
 // enabled if instruction should execute
-wire is_do_op = !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+wire is_do_op = !is_stall && !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -172,11 +177,6 @@ wire alu_nf;
 // result of 'alu_operand_a' OP 'alu_operand_b'
 wire [REGS_WIDTH-1:0] alu_result;
 
-// when the OP_IO_READ / OP_IO_WRITE stalls the pipeline then current
-// instruction might trigger writes to registers and ram
-// enabled while in a read / write uart op
-reg is_uart_stall;
-
 //
 // Registers (part two)
 //
@@ -186,7 +186,7 @@ wire regs_we =
     // if OP_IO_READ is finished and wants to write
     urx_wb ||
     // if not in OP_IO_READ or OP_IO_WRITE
-    !is_uart_stall && (is_alu_op || was_do_op && is_ldi); 
+    !is_stall && (is_alu_op || was_do_op && is_ldi); 
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
@@ -199,7 +199,7 @@ wire [REGS_WIDTH-1:0] regs_wd =
 //
 
 // enable write if 'st'
-assign ram_wea = !is_uart_stall && is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
+assign ram_wea = !is_stall && is_do_op && !is_jmp && !cs_call && instr_op == OP_ST;
 
 // address to write
 assign ram_addra = rega_dat;
@@ -252,7 +252,7 @@ always @(posedge clk) begin
         urx_reg_dat <= 0;
         urx_reg_hilo <= 0;
         urx_wb <= 0;
-        is_uart_stall <= 0;
+        is_stall <= 0;
     end else begin
     
         is_bubble <= 0; // disable flag if set in previous instruction
@@ -305,7 +305,7 @@ always @(posedge clk) begin
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
-                            is_uart_stall <= 1;
+                            is_stall <= 1;
                             stp <= STP_UART_READ;
                         end 
                         
@@ -315,7 +315,7 @@ always @(posedge clk) begin
                             if (!cs_ret) begin
                                 pc <= pc; // overwrite pc to stall
                             end
-                            is_uart_stall <= 1;
+                            is_stall <= 1;
                             stp <= STP_UART_WRITE;
                         end                       
                         
@@ -346,7 +346,7 @@ always @(posedge clk) begin
             end else begin // else of if (is_do_op)
                 // if 'ldi' enable 'is_ldi' so that data part of the 
                 //  'ldi' does not get interpreted as an instruction
-                if (instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
+                if (!is_stall && instr_op == OP_LDI && rega == 0 && !cs_call && !is_jmp) begin
                     is_ldi <= 1;
                     stp <= STP_LDI;
                 end
@@ -367,7 +367,7 @@ always @(posedge clk) begin
             if (!utx_bsy) begin
                 utx_go <= 0; // acknowledge that the write is done
                 pc <= pc + 1;
-                is_uart_stall <= 0;
+                is_stall <= 0;
                 stp <= STP_EXECUTE;
             end
         end
@@ -388,7 +388,7 @@ always @(posedge clk) begin
         STP_UART_READ_WB: begin // OP_IO_READ: one cycle to write back the register
             pc <= pc + 1;
             urx_wb <= 0;
-            is_uart_stall <= 0;
+            is_stall <= 0;
             stp <= STP_EXECUTE;
         end
         
