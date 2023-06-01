@@ -11,15 +11,15 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="553.425 ns"></ZoomStartTime>
-      <ZoomEndTime time="795.315 ns"></ZoomEndTime>
-      <Cursor1Time time="755.000 ns"></Cursor1Time>
+      <ZoomStartTime time="416.900 ns"></ZoomStartTime>
+      <ZoomEndTime time="520.001 ns"></ZoomEndTime>
+      <Cursor1Time time="505.000 ns"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
-      <NameColumnWidth column_width="79"></NameColumnWidth>
-      <ValueColumnWidth column_width="66"></ValueColumnWidth>
+      <NameColumnWidth column_width="121"></NameColumnWidth>
+      <ValueColumnWidth column_width="107"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="22" />
+   <WVObjectSize size="23" />
    <wvobject type="logic" fp_name="/TB_Top/rst">
       <obj_property name="ElementShortName">rst</obj_property>
       <obj_property name="ObjectShortName">rst</obj_property>
@@ -36,6 +36,10 @@
    <wvobject type="array" fp_name="/TB_Top/top/core/instr">
       <obj_property name="ElementShortName">instr[15:0]</obj_property>
       <obj_property name="ObjectShortName">instr[15:0]</obj_property>
+   </wvobject>
+   <wvobject type="array" fp_name="/TB_Top/top/core/stp">
+      <obj_property name="ElementShortName">stp[2:0]</obj_property>
+      <obj_property name="ObjectShortName">stp[2:0]</obj_property>
    </wvobject>
    <wvobject type="logic" fp_name="/TB_Top/top/core/is_stall">
       <obj_property name="ElementShortName">is_stall</obj_property>

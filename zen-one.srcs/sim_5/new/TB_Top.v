@@ -124,9 +124,7 @@ initial begin
     #clk_tk
     
     if (top.core.regs.mem[3]==16'b1010_1010) $display("case 3 passed"); else $display("case 3 FAILED");
-    
-    #clk_tk // ret bubble
-    
+        
     // rl r4  ret
     // 4637 // [33] 12:5
     #clk_tk
@@ -159,7 +157,7 @@ initial begin
     // uart writes reg
     #clk_tk
     if (top.core.regs.mem[4]==16'b1111_1111) $display("case 4 passed"); else $display("case 4 FAILED");
-    
+
     // end:
     // jmp end
     // 000F // [5] 8:5
@@ -170,7 +168,6 @@ initial begin
     // 000F // [5] 8:5
     // note. pc is one step ahead of current instruction
     if (top.core.pc==6) $display("case 5 passed"); else $display("case 5 FAILED");
-
     
     $finish;
 end
