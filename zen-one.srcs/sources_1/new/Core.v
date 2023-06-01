@@ -266,12 +266,7 @@ always @(posedge clk) begin
             stp <= STP_BRANCH;
             
         end else begin
-            // if reading or writing uart stay at same instruction until done.
-            //  note. instruction in context is the next instruction in the pipeline
-            if (stp != STP_UART_WRITE && 
-                stp != STP_UART_READ && 
-                stp != STP_UART_READ_WB)
-            begin
+            if (!is_stall) begin
                 pc <= pc + 1;
             end
         end
@@ -279,8 +274,9 @@ always @(posedge clk) begin
         case(stp)
         
         STP_EXECUTE: begin
-            // remember for the next cycle if this was an executed instruction
+            // remember for the next cycle if this instruction was executed
             was_do_op <= is_do_op;
+
             if (is_do_op) begin
 
                 if (is_jmp) begin
@@ -386,9 +382,9 @@ always @(posedge clk) begin
         end
         
         STP_UART_READ_WB: begin // OP_IO_READ: one cycle to write back the register
-            pc <= pc + 1;
             urx_wb <= 0;
             is_stall <= 0;
+            pc <= pc + 1;
             stp <= STP_EXECUTE;
         end
         
