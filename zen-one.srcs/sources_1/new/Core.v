@@ -49,7 +49,7 @@ localparam ALU_SHF = 3'b111; // shift 'regb'
 // load immediate (ldi)
 //
 
-// enabled if in data part of the instruction
+// true if in data part of the instruction
 reg is_ldi;
 // destination register saved from previous cycle
 reg [3:0] ldi_reg;
@@ -64,17 +64,17 @@ reg [3:0] urx_reg;
 reg [15:0] urx_reg_dat;
 // write register high or low byte
 reg urx_reg_hilo;
-// enabled when 'urx_reg_dat' is written to 'urx_reg'
+// true when 'urx_reg_dat' is written to 'urx_reg'
 reg urx_wb;
 
-// enabled when previous instruction did execute
+// true when previous instruction did execute
 reg was_do_op;
 
 //
 // load (ld)
 //
 
-// enabled when previous instruction was 'ld'
+// true when previous instruction was 'ld'
 //  the load instruction writes to register during the second cycle
 reg was_ld;
 // the register to which the 'ld' instruction wants to write to
@@ -110,18 +110,19 @@ wire zn_zf;
 // current 'negative' flag
 wire zn_nf;
 
-// enabled when the current instruction is not valid because of previous 
-//  instruction being a 'jmp' or 'call'. in that case the next instruction
+// true when the current instruction is not valid because of previous 
+//  instruction being a 'jmp', 'call' or 'ret'. in that case the next instruction
 //   in the pipeline should not be executed
 reg is_bubble;
 
 // when the OP_IO_READ / OP_IO_WRITE stalls the pipeline then current
 //  instruction might trigger writes to registers and ram
-// enabled while in a read / write uart op
+//   true while in a read / write uart op
 reg is_stall;
 
-// enabled if instruction should execute
-wire is_do_op = !is_stall && !is_ldi && !is_bubble && ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
+// true if instruction should execute
+wire is_do_op = !is_stall && !is_ldi && !is_bubble && 
+    ((instr_z && instr_n) || (zn_zf == instr_z && zn_nf == instr_n));
 
 //
 // Calls
@@ -157,7 +158,8 @@ wire [REGS_WIDTH-1:0] regb_dat =
 // ALU
 //
 
-wire is_alu_op = is_do_op && !is_ldi && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
+wire is_alu_op = is_do_op && !is_ldi && !is_jmp && !cs_call && 
+    (!instr_op[0] || instr_op == OP_ADDI);
 
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
@@ -184,8 +186,8 @@ wire [REGS_WIDTH-1:0] alu_result;
 // write enable
 wire regs_we = 
     urx_wb || // if OP_IO_READ is finished and wants to write
-    was_do_op && is_ldi ||
-    is_alu_op; 
+    was_do_op && is_ldi || // if last instruction was 'ldi' and executed
+    is_alu_op;
 
 // data to write to 'regb' when 'regs_we'
 wire [REGS_WIDTH-1:0] regs_wd =
@@ -208,11 +210,11 @@ assign ram_dia =  regb_dat;
 // Zn
 //
 
-// enabled if Zn will change state.
+// true if Zn will change state.
 wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
-// enabled to copy flags from 'Calls' or disabled to copy flags from 'ALU'
+// true to copy flags from 'Calls' or false to copy flags from 'ALU'
 wire zn_sel = cs_ret;
-// enabled if flags should be cleared, has precedence over 'zn_sel'
+// true if flags should be cleared, has precedence over 'zn_sel'
 wire zn_clr = cs_call;
 
 //
@@ -282,7 +284,7 @@ always @(posedge clk) begin
 
                 if (is_jmp) begin
                     pc <= pc + {{(RAM_ADDR_WIDTH-12){imm12[11]}},imm12} - 1; // -1 because pc is ahead by 1 instruction
-                    is_bubble <= 1;
+                    is_bubble <= 1; // next instruction in the pipeline should not be executed
                     stp <= STP_BRANCH;
 
                 end else if (cs_call) begin
@@ -444,8 +446,8 @@ Calls #(
     .pc_in(pc), // current program counter
     .zf_in(zn_zf), // current zero flag
     .nf_in(zn_nf), // current negative flag
-    .call(cs_call), // enabled when it is a 'call'
-    .ret(cs_ret), // enabled when instruction is also 'return'
+    .call(cs_call), // true when it is a 'call'
+    .ret(cs_ret), // true when instruction is also 'return'
     .en(cs_en), // enables 'call' or 'ret'
     .pc_out(cs_pc_out), // top of stack program counter
     .zf_out(cs_zf), // top of stack zero flag
