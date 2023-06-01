@@ -196,13 +196,26 @@ initial begin
     #clk_tk
     if (top.ram.ram[2]==1) $display("case 6 passed"); else $display("case 6 FAILED");
 
+    // call foo2
+    // 005B // [7] 11:1
+    #clk_tk
+    #clk_tk // bubble
+
+    // foo2: func
+    // ldi 0x5555 r6  ret
+    // 6037 // [80] 27:5
+    // 5555 // [81] 27:5
+    #clk_tk
+    #clk_tk
+    if (top.core.regs.mem[6]==16'h5555) $display("case 7 passed"); else $display("case 7 FAILED");
+
     // end:
     // jmp end
     // 000F // [7] 12:5
     #clk_tk
     #clk_tk // bubble
     // note. pc is one step ahead of current instruction
-    if (top.core.pc==8) $display("case 7 passed"); else $display("case 7 FAILED");
+    if (top.core.pc==9) $display("case 8 passed"); else $display("case 8 FAILED");
     
     $finish;
 end

@@ -8,6 +8,8 @@ call foo
 rl r5           # test bench sends 0x0001
 st r2 r5        # ram[2]=1
 
+call foo2
+
 end:
     jmp end
 
@@ -18,4 +20,9 @@ endfunc
 
 @ 0x040 bar: func
     rl r3  ret
+endfunc
+
+
+@ 0x050 foo2: func
+    ldi 0x5555 r6  ret
 endfunc
