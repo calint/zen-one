@@ -1,9 +1,19 @@
 -------------------------------------------------------------
 TAG=2023-05-25--2--checkpoint && git tag $TAG && git push origin $TAG
 -------------------------------------------------------------
+overwrites current workspace with HEAD
+    git reset --hard HEAD
+-------------------------------------------------------------
+overwrites HEAD with current workspace
+    git push --force origin HEAD
+-------------------------------------------------------------
 `timescale 1ns / 1ps
 `default_nettype none
 //`define DBG
+
+module Mod ();
+
+endmodule
 
 `undef DBG
 `default_nettype wire
@@ -19,16 +29,8 @@ stty -F /dev/ttyUSB1 9600 cs8 -cstopb -parenb
 -------------------------------------------------------------
 java -jar ~/Downloads/google-java-format-1.17.0-all-deps.jar -i zasm.java
 -------------------------------------------------------------
-overwrites current workspace with HEAD
-    git reset --hard HEAD
--------------------------------------------------------------
-overwrites HEAD with current workspace
-    git push --force origin HEAD
--------------------------------------------------------------
 vivado install cable drivers:
     ./Vivado/2022.2/data/xicom/cable_drivers/lin64/install_script/install_drivers/install_drivers
 -------------------------------------------------------------
-
-
-41 -> x0070 112
-
+hexdump -C /dev/ttyUSB1
+-------------------------------------------------------------
