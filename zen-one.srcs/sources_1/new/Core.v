@@ -210,8 +210,8 @@ assign ram_dia =  regb_dat;
 // Zn
 //
 
-// true if Zn will change state.
-wire zn_we = is_do_op && (is_alu_op || cs_call || cs_ret);
+// true if Zn will change state
+wire zn_we = is_alu_op || cs_en;
 // true to copy flags from 'Calls' or false to copy flags from 'ALU'
 wire zn_sel = cs_ret;
 // true if flags should be cleared, has precedence over 'zn_sel'
