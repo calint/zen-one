@@ -159,8 +159,7 @@ wire [REGS_WIDTH-1:0] regb_dat =
 // ALU
 //
 
-wire is_alu_op = is_do_op && !is_ldi && !is_jmp && !cs_call && 
-    (!instr_op[0] || instr_op == OP_ADDI);
+wire is_alu_op = is_do_op && !is_jmp && !cs_call && (!instr_op[0] || instr_op == OP_ADDI);
 
 wire [2:0] alu_op = 
     instr_op == OP_ADDI ? ALU_ADD : // 'addi' is add with signed immediate value 'rega'
