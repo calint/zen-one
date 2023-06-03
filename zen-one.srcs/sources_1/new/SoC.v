@@ -7,7 +7,7 @@ module SoC #(
 //    parameter RAM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_2/new/TB_Uart.mem"
 //    parameter RAM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_2/new/TB_UartRx.mem"
 //    parameter RAM_FILE = "/home/c/w/zen-one/zen-one.srcs/sim_4/new/TB_Top.mem"
-    parameter RAM_FILE = "/home/c/w/zen-one/zen-one.srcs/sources_1/new/init.mem"
+    parameter RAM_FILE = "init.mem"
 )(
     input wire reset,
     input wire clk_in,
