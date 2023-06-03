@@ -83,8 +83,8 @@ same toy 16 bit retro cpu as 'zen-x' but re-written
 
   rc  :       : cyc :
  -----+-------+-----+--------------------------------------
-  01  : call  : 1/2  : pc = imm12 << 4
-  11  : jmp   : 1/2  : pc += signed imm12
+  01  : call  : 1-2  : pc = imm12 << 4
+  11  : jmp   : 1-2  : pc += signed imm12
  -----+-------+-----+--------------------------------------
 
 i/o
