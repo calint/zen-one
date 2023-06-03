@@ -39,12 +39,12 @@ always @(posedge clk) begin
     `endif
 end
 
-// wireing of Core and UartTx
+// wiring of Core and UartTx
 wire [7:0] core_utx_dat;
 wire core_utx_go;
 wire utx_bsy;
 
-// wireing of Core and UartRx
+// wiring of Core and UartRx
 wire [7:0] core_urx_dat;
 wire urx_dr;
 wire core_urx_go;
