@@ -3,7 +3,7 @@
 //`define DBG
 
 module Top #(
-    parameter RAM_FILE = "ROM.mem",
+    parameter RAM_FILE = "RAM.mem",
     parameter CLK_FREQ = 66_000_000,
     parameter BAUD_RATE = 9600
 )(
