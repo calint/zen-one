@@ -1,5 +1,6 @@
-ledi 0b1000          # due to pipeline the first instruction must be a 'nop'
-                     #  like instruction which might run several times
+ledi 0b1000          # the first instruction is a 'nop'-like instruction
+                     #  which executes during the reset
+
 xor r15 r15          # zero r15, a counter
 loop:
     ldi hello.len r2 # hello

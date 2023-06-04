@@ -43,7 +43,7 @@ localparam ALU_XOR = 3'b011; // bitwise xor 'rega' to 'regb'
 localparam ALU_AND = 3'b100; // bitwise and 'rega' to 'regb'
 localparam ALU_NOT = 3'b101; // bitwise not 'rega' to 'regb'
 localparam ALU_CP  = 3'b110; // copy 'rega' to 'regb'
-localparam ALU_SHF = 3'b111; // shift 'regb'
+localparam ALU_SHF = 3'b111; // shift 'regb', negative is left
 
 //
 // load immediate (ldi)

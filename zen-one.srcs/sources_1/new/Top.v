@@ -33,12 +33,6 @@ assign led0_r = 1;
 assign led0_g = !btn;
 assign led0_b = 1;
 
-always @(posedge clk) begin
-    `ifdef DBG
-        $display("%0t: clk+: Top: %0d:%0h", $time, ram_addrb, ram_dob);
-    `endif
-end
-
 // wiring of Core and UartTx
 wire [7:0] core_utx_dat;
 wire core_utx_go;
