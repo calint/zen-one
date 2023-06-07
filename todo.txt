@@ -2,6 +2,8 @@
 [ ] zasm: example 'string roome "u r in roome"'
 [ ] Calls has 2 blocking assignments. nba?
 [ ] instruction to read button(s)
+[ ] 'not' can be synthesized with 'ldi -1 r1 ; xor r1 r2'
+[ ] 'wh' can be replaced by 'shf 8 r1; wl r1'
 -----------------------------------------------------------------------------
 [x] parameterize modules
 [x] Registers with two write ports to make 'ld' to one cycle
