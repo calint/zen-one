@@ -410,7 +410,6 @@ Registers #(
 ALU #(
     .WIDTH(REGS_WIDTH)
 ) alu (
-//    .clk(clk),
     .op(alu_op),
     .a(alu_operand_a),
     .b(alu_operand_b),
