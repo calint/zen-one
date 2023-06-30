@@ -1,7 +1,7 @@
 # zen-one
 experimental retro 16 bit cpu written in verilog xilinx vivado intended for fpga Cmod S7 from Digilent
 
-third try at fpga verilog vivado
+third try at fpga with verilog and vivado
 
 same toy 16 bit retro cpu as 'zen-x' but re-written
 * ad-hoc pipeline where the next instruction is fetched while current is executed
@@ -12,6 +12,8 @@ same toy 16 bit retro cpu as 'zen-x' but re-written
 * two cycles for call and jump if branch taken
 * two cycles for instructions that also return from current call
 * all core components run on positive edge of the clock
+
+experiments continued in project [riscv](https://github.com/calint/riscv)
 
 ```
                           
