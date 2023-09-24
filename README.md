@@ -1,9 +1,9 @@
 # zen-one
-experimental retro 16 bit cpu written in verilog xilinx vivado intended for fpga Cmod S7 from Digilent
+experimental retro 16 bit cpu written in verilog xilinx vivado intended for fpga cmod s7 from digilent
 
 third try at fpga with verilog and vivado
 
-same toy 16 bit retro cpu as 'zen-x' but re-written
+same toy 16 bit retro cpu as [zen-x](https://github.com/calint/zen-x) but re-written
 * ad-hoc pipeline where the next instruction is fetched while current is executed
 * ad-hoc pipeline resolution for register being loaded from RAM and used by current instruction
 * dual-port RAM instead of ROM and RAM
