@@ -1,0 +1,3 @@
+# directories considered in "Languages"
+*               -linguist-detectable
+/zen-one.srcs/*  linguist-detectable
