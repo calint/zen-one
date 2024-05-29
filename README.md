@@ -1,4 +1,7 @@
 # zen-one
+
+> :bell: experiments continued in project [riscv](https://github.com/calint/riscv)
+
 experimental retro 16 bit cpu written in verilog xilinx vivado intended for fpga cmod s7 from digilent
 
 third try at fpga with verilog and vivado
@@ -12,8 +15,6 @@ same toy 16 bit retro cpu as [zen-x](https://github.com/calint/zen-x) but re-wri
 * two cycles for call and jump if branch taken
 * two cycles for instructions that also return from current call
 * all core components run on positive edge of the clock
-
-experiments continued in project [riscv](https://github.com/calint/riscv)
 
 ```
                           
